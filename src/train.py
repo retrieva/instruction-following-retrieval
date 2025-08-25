@@ -22,7 +22,8 @@ from peft import LoraConfig, get_peft_model
 from tqdm import tqdm
 from dataset.msmarco import MSMARCO
 from models.instract_ir_model import INSRTUCTIRMODEL
-from loss.hard_negative_loss import HardNegativeNLLLoss
+from loss.contrastive_loss import ContrastiveLoss
+from loss.similarity_ranking_loss import SimilarityRankingLoss
 import random
 import numpy as np
 from torch.utils.data import DataLoader
@@ -44,7 +45,6 @@ class DefaultCollator:
 
         for example in batch:
             for idx, text in enumerate(example.texts):
-                # TODO: Add prepare_for_tokenization here similar to supervised training and see if it impacts performance
                 texts[idx].append(text)
             labels.append(example.label)
         labels = torch.tensor(labels)
@@ -70,11 +70,13 @@ class ContrastiveTrainer(Trainer):
     def __init__(
         self,
         *args,
-        loss_function=None,
+        contrastive_loss=None,
+        ranking_loss=None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.loss_function = loss_function
+        self.contrastive_loss = contrastive_loss
+        self.ranking_loss = ranking_loss
 
     def compute_loss(
         self,
@@ -86,21 +88,23 @@ class ContrastiveTrainer(Trainer):
         features, labels = inputs
 
         q_reps = self.model(features[0]) # 0番目はクエリ
-        d_reps = self.model(features[1]) # 1番目は正例文書
 
-        d_reps_neg = None
-        if len(features) > 2:
-            d_reps_neg = self.model(features[2])
+        d_reps_pos = self.model(features[1]) # 1番目は正例文書
+        d_reps_neg = self.model(features[2]) # 2番目は指示文を考慮すると関連しない負例文書
 
-        loss = self.loss_function(q_reps, d_reps, d_reps_neg)
+        x_reps_pos = self.model(features[3]) # 3番目は、クエリと正例指示文
+        x_reps_neg = self.model(features[4]) # 4番目は、クエリと負例指示文
 
-        if return_outputs:
-            output = torch.cat(
-                [model(row)["sentence_embedding"][:, None] for row in features], dim=1
-            )
-            return loss, output
+        #loss1 = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
+        loss2 = self.ranking_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, x_reps_neg)
 
-        return loss
+        # if return_outputs:
+        #     output = torch.cat(
+        #         [model(row)["sentence_embedding"][:, None] for row in features], dim=1
+        #     )
+        #     return loss, output
+
+        return loss2
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         # If we are executing this function, we are the process zero, so we don't check for that.
@@ -167,7 +171,6 @@ def main():
     msmarco = MSMARCO()
     train_examples = [i for i in msmarco]
 
-
     model = INSRTUCTIRMODEL.from_pretrained(
         base_model_name_or_path="meta-llama/Llama-3.2-1B-Instruct",
         enable_bidirectional=True,
@@ -182,7 +185,8 @@ def main():
 
     tokenizer = model.tokenizer
 
-    train_loss = HardNegativeNLLLoss()
+    contrastive_loss = ContrastiveLoss()
+    ranking_loss = SimilarityRankingLoss()
 
     data_collator = DefaultCollator(model)
 
@@ -195,10 +199,10 @@ def main():
     #     import sys
     #     sys.exit()
     
-    wandb.init(project="instructir", name="run-1")
+    #wandb.init(project="instructir", name="run-1")
 
     training_args = TrainingArguments(
-        output_dir = "/data/sugiyama/save_model/test",
+        output_dir = "/data/sugiyama/save_model/rankloss",
         num_train_epochs = 1,
         per_device_train_batch_size = 16,
         #per_device_eval_batch_size = 32,
@@ -214,7 +218,7 @@ def main():
         #eval_strategy = "epoch",
         #save_total_limit = 1,
         fp16=False,
-        report_to="wandb",
+        report_to="none",
     )
 
     trainer = ContrastiveTrainer(
@@ -223,7 +227,8 @@ def main():
         train_dataset=train_examples,
         data_collator=data_collator,
         tokenizer=tokenizer,
-        loss_function=train_loss,
+        contrastive_loss=contrastive_loss,
+        ranking_loss=ranking_loss,
     )
 
     # if custom_args.stop_after_n_steps is not None:
