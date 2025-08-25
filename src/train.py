@@ -33,7 +33,6 @@ import wandb
 @dataclass
 class DefaultCollator:
     model: INSRTUCTIRMODEL
-
     def __init__(self, model: INSRTUCTIRMODEL) -> None:
         self.model = model
 

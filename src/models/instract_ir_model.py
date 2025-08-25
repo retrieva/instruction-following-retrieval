@@ -27,7 +27,7 @@ from transformers import (
 #     # GemmaBiModel,
 #     # Qwen2BiModel,
 # )
-from .bidirectional_llama import LlamaBiModel, LlamaBiForMNTP
+from .bidirectional_llama import LlamaBiModel
 
 logger = logging.getLogger(__name__)
 

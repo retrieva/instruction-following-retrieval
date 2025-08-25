@@ -2,8 +2,7 @@ import torch
 from torch import nn, Tensor
 from .loss_utils import cos_sim, mismatched_sizes_all_gather
 
-
-class HardNegativeNLLLoss:
+class SimilarityRankingLoss:
     def __init__(
         self,
         scale: float = 20.0,
@@ -11,7 +10,7 @@ class HardNegativeNLLLoss:
     ):
         self.scale = scale
         self.similarity_fct = similarity_fct
-        self.cross_entropy_loss = nn.CrossEntropyLoss()
+        self.ranking_loss = nn.TripletMarginLoss(margin=1.0, p=2, eps=1e-7)
 
     def __call__(
         self,
@@ -32,16 +31,18 @@ class HardNegativeNLLLoss:
             full_d_reps_neg = mismatched_sizes_all_gather(d_reps_neg)
             full_d_reps_neg = torch.cat(full_d_reps_neg)
         else:
-            full_d_reps_pos = d_reps_pos
             full_q_reps = q_reps
-            full_d_reps_neg = d_reps_neg
+            full_x_reps = x_reps # クエリ+正例指示文
 
-        d_reps = torch.cat([full_d_reps_pos, full_d_reps_neg], dim=0)
-        scores = self.similarity_fct(full_q_reps, d_reps) * self.scale
-        labels = torch.tensor(
-            range(len(scores)), dtype=torch.long, device=scores.device
-        )
+            full_d_reps_pos = d_reps_pos # 正例文書
+            full_d_reps_neg = d_reps_neg # 指示文を考慮すると関連しない負例文書
 
-        loss = self.cross_entropy_loss(scores, labels)
+            full_d_reps_hard_neg = d_reps_hard_neg # 無関係な負例文書
+
+        pos_scores = self.similarity_fct(full_x_reps, full_d_reps_pos) # 正例文書：Positive
+        neg_scores = self.similarity_fct(full_x_reps, full_d_reps_neg) # 負例文書：Negative
+        hard_neg_scores = self.similarity_fct(full_x_reps, full_d_reps_hard_neg) # 無関係な文書：Hard Negative
+
+
+        loss = self.triplet_loss(neg_scores,pos_scores)
         return loss
-    

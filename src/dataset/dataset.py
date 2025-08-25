@@ -6,8 +6,8 @@ import torch
 class DataSample:
     id: int
     query: str
-    # instruction_positive:str
-    # instruction_negative:str
+    instruction_positive:str
+    instruction_negative:str
     passage_positive: str
     passage_negative: str
 

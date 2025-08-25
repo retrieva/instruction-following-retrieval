@@ -186,26 +186,3 @@ class LlamaBiModel(LlamaModel):
             )
 
         return causal_mask
-
-
-class LlamaBiForMNTP(LlamaForCausalLM):
-    def __init__(self, config):
-        LlamaPreTrainedModel.__init__(self, config)
-        self.model = LlamaBiModel(config)
-        self.vocab_size = config.vocab_size
-        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
-
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    # getter for PEFT model
-    def get_model_for_peft(self):
-        return self.model
-
-    # setter for PEFT model
-    def set_model_for_peft(self, model: PeftModel):
-        self.model = model
-
-    # save the PEFT model
-    def save_peft_model(self, path):
-        self.model.save_pretrained(path)

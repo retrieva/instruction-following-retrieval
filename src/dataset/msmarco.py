@@ -34,8 +34,10 @@ class MSMARCO(Dataset):
                 DataSample(
                     id = i,
                     query = dataset["query_positive"],
-                    # instruction_positive = dataset["instruction_positive"],
-                    # instruction_negative = dataset["instruction_negative"],
+                    instruction_positive = dataset["instruction_positive"],
+                    instruction_negative = dataset["instruction_negative"],
+                    x_positive = instruction_positive + query,
+                    x_negative = instruction_positive + query,
                     passage_positive = dataset["document_positive"],
                     passage_negative = dataset["hard_negative_document_1"]
                 )
