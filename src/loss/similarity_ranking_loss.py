@@ -5,10 +5,8 @@ from .loss_utils import cos_sim, mismatched_sizes_all_gather
 class SimilarityRankingLoss:
     def __init__(
         self,
-        scale: float = 0.05,
         similarity_fct=nn.CosineSimilarity(dim=-1),
     ):
-        self.scale = scale
         self.similarity_fct = similarity_fct
         self.triplet_loss = MarginRankingLoss(margin=0.1)
 
@@ -18,7 +16,6 @@ class SimilarityRankingLoss:
         d_reps_pos: Tensor,
         d_reps_neg: Tensor,
         x_reps_pos: Tensor,
-        x_reps_neg: Tensor,
     ):
         if d_reps_neg is None:
             d_reps_neg = d_reps_pos[:0, :]
@@ -43,12 +40,7 @@ class SimilarityRankingLoss:
         pos_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_pos) # 正例文書：Positive
         neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_neg) # 負例文書：Negative
 
-        print(neg_scores)
-        print(pos_scores)
         loss = self.triplet_loss(neg_scores,pos_scores)
-        print(loss)
-        import sys
-        sys.exit()
         return loss
 
 class MarginRankingLoss(nn.Module):

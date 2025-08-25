@@ -1,5 +1,5 @@
 from langchain_elasticsearch import ElasticsearchStore
-from evaluation2.utils.embeddings import Contriever, OpenAIEmbedding, Instructor, ColBERT, GTR, Instructirmodel
+from evaluation_IFIR.utils.embeddings import Contriever, OpenAIEmbedding, Instructor, ColBERT, GTR, Instructirmodel
 #from utils.inst_llms import Promptriever, NVEmbed, E5 #, GritLM
 from elasticsearch import Elasticsearch
 

@@ -3,10 +3,10 @@ import json
 import argparse
 from tqdm import tqdm
 
-from evaluation2.utils.dataset import load_query
-from evaluation2.utils import metrics
-from evaluation2.utils.evaluator import Evaluator
-from evaluation2.utils.constant import get_es, get_hybrid_es, dense_search, hybrid_search
+from evaluation_IFIR.utils.dataset import load_query
+from evaluation_IFIR.utils import metrics
+from evaluation_IFIR.utils.evaluator import Evaluator
+from evaluation_IFIR.utils.constant import get_es, get_hybrid_es, dense_search, hybrid_search
 reason_datasets = ['fiqa', 'pm', 'scifact_open', 'aila']
 
 def evaluation(model: str, dataset: str, topk: int = 20, domain: bool = False, device: str = "cuda:0", hybrid: bool = False):
