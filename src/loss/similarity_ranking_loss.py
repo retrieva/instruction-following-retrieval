@@ -5,18 +5,20 @@ from .loss_utils import cos_sim, mismatched_sizes_all_gather
 class SimilarityRankingLoss:
     def __init__(
         self,
-        scale: float = 20.0,
-        similarity_fct=cos_sim,
+        scale: float = 0.05,
+        similarity_fct=nn.CosineSimilarity(dim=-1),
     ):
         self.scale = scale
         self.similarity_fct = similarity_fct
-        self.ranking_loss = nn.TripletMarginLoss(margin=1.0, p=2, eps=1e-7)
+        self.triplet_loss = MarginRankingLoss(margin=0.1)
 
     def __call__(
         self,
         q_reps: Tensor,
         d_reps_pos: Tensor,
-        d_reps_neg: Tensor = None,
+        d_reps_neg: Tensor,
+        x_reps_pos: Tensor,
+        x_reps_neg: Tensor,
     ):
         if d_reps_neg is None:
             d_reps_neg = d_reps_pos[:0, :]
@@ -32,17 +34,27 @@ class SimilarityRankingLoss:
             full_d_reps_neg = torch.cat(full_d_reps_neg)
         else:
             full_q_reps = q_reps
-            full_x_reps = x_reps # クエリ+正例指示文
+            full_x_reps_pos = x_reps_pos # クエリと正例指示文
+            #full_x_reps_neg = x_reps_neg # クエリと負例指示文
 
             full_d_reps_pos = d_reps_pos # 正例文書
             full_d_reps_neg = d_reps_neg # 指示文を考慮すると関連しない負例文書
+        
+        pos_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_pos) # 正例文書：Positive
+        neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_neg) # 負例文書：Negative
 
-            full_d_reps_hard_neg = d_reps_hard_neg # 無関係な負例文書
-
-        pos_scores = self.similarity_fct(full_x_reps, full_d_reps_pos) # 正例文書：Positive
-        neg_scores = self.similarity_fct(full_x_reps, full_d_reps_neg) # 負例文書：Negative
-        hard_neg_scores = self.similarity_fct(full_x_reps, full_d_reps_hard_neg) # 無関係な文書：Hard Negative
-
-
+        print(neg_scores)
+        print(pos_scores)
         loss = self.triplet_loss(neg_scores,pos_scores)
+        print(loss)
+        import sys
+        sys.exit()
         return loss
+
+class MarginRankingLoss(nn.Module):
+    def __init__(self, margin: float = 0.1):
+        super(MarginRankingLoss, self).__init__()
+        self.margin = margin
+
+    def forward(self, pos_scores: Tensor, neg_scores: Tensor):
+        return torch.clamp(self.margin - pos_scores + neg_scores, min=0.0).mean()

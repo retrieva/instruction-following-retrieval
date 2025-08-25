@@ -3,10 +3,10 @@ from torch import nn, Tensor
 from .loss_utils import cos_sim, mismatched_sizes_all_gather
 
 
-class HardNegativeNLLLoss:
+class ContrastiveLoss:
     def __init__(
         self,
-        scale: float = 20.0,
+        scale: float = 0.05,
         similarity_fct=cos_sim,
     ):
         self.scale = scale
@@ -32,12 +32,12 @@ class HardNegativeNLLLoss:
             full_d_reps_neg = mismatched_sizes_all_gather(d_reps_neg)
             full_d_reps_neg = torch.cat(full_d_reps_neg)
         else:
-            full_d_reps_pos = d_reps_pos
-            full_q_reps = q_reps
-            full_d_reps_neg = d_reps_neg
+            full_d_reps_pos = d_reps_pos # 正例文書
+            full_q_reps = q_reps # クエリと指示文
+            full_d_reps_neg = d_reps_neg # 負例文書
 
         d_reps = torch.cat([full_d_reps_pos, full_d_reps_neg], dim=0)
-        scores = self.similarity_fct(full_q_reps, d_reps) * self.scale
+        scores = self.similarity_fct(full_q_reps, d_reps) / self.scale
         labels = torch.tensor(
             range(len(scores)), dtype=torch.long, device=scores.device
         )

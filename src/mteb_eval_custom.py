@@ -6,8 +6,9 @@ from mteb.encoder_interface import PromptType
 import numpy as np
 from models.instract_ir_model import INSRTUCTIRMODEL
 from typing import Any
-from mteb.models.instructions import task_to_instruction
-from mteb.models.text_formatting_utils import corpus_to_texts
+from evaluation.instructions import task_to_instruction
+from evaluation.text_formatting_utils import corpus_to_texts
+from sentence_transformers import SentenceTransformer
 
 def llm2vec_instruction(instruction):
     if len(instruction) > 0 and instruction[-1] != ":":
@@ -47,7 +48,7 @@ class InstructIRModelWrapper():
         prompt_name: str = None,
         **kwargs: Any,
     ) -> np.ndarray:
-        sentences = corpus
+        sentences = corpus_to_texts(corpus, sep=" ")
         sentences = [["", sentence] for sentence in sentences]
         if "request_qid" in kwargs:
             kwargs.pop("request_qid")
@@ -55,7 +56,7 @@ class InstructIRModelWrapper():
 
     def encode_queries(self, queries: list[str], **kwargs: Any) -> np.ndarray:
         return self.encode(queries, **kwargs)
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -75,7 +76,7 @@ if __name__ == "__main__":
         type=str,
         default="/home/seiji_sugiyama/works/instructir/src/config/task_to_instructions.json",
     )
-    parser.add_argument("--output_dir", type=str, default="../results")
+    parser.add_argument("--output_dir", type=str, default="results")
 
     args = parser.parse_args()
 
@@ -83,7 +84,6 @@ if __name__ == "__main__":
     if args.task_to_instructions_fp is not None:
         with open(args.task_to_instructions_fp, "r") as f:
             task_to_instructions = json.load(f)
-
     model = INSRTUCTIRMODEL.from_pretrained(
         args.base_model_name_or_path,
         peft_model_name_or_path=args.peft_model_name_or_path,
@@ -92,6 +92,6 @@ if __name__ == "__main__":
     )
 
     model = InstructIRModelWrapper(model=model, task_to_instructions=task_to_instructions)
-    tasks = mteb.get_tasks(tasks=["Core17InstructionRetrieval"])#, "News21InstructionRetrieval", "Robust04InstructionRetrieval"])
+    tasks = mteb.get_tasks(tasks=["MSMARCO"])
     evaluation = mteb.MTEB(tasks=tasks)
     results = evaluation.run(model, output_folder=args.output_dir)
