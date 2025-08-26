@@ -25,8 +25,6 @@ class InstructIRModelWrapper():
         prompt_type: PromptType | None = None,
         **kwargs: Any,
     ) -> np.ndarray:
-        
-        encoded = self.model.encode(sentences, **kwargs)
 
         return self.model.encode(sentences, **kwargs)
 
@@ -41,29 +39,21 @@ if __name__ == "__main__":
         "--peft_model_name_or_path",
         type=str,
         default="/data/sugiyama/save_model/test/checkpoint-2423",
-    )# /data/sugiyama/save_model/rankloss/checkpoint-2422
-    parser.add_argument("--task_name", type=str, default="STS16")
-    parser.add_argument(
-        "--task_to_instructions_fp",
-        type=str,
-        default="/home/seiji_sugiyama/works/instructir/src/config/task_to_instructions.json",
     )
+    parser.add_argument("--task_name", type=str, default="STS16")
     parser.add_argument("--output_dir", type=str, default="results")
 
     args = parser.parse_args()
 
-    task_to_instructions = None
-    if args.task_to_instructions_fp is not None:
-        with open(args.task_to_instructions_fp, "r") as f:
-            task_to_instructions = json.load(f)
     model = INSRTUCTIRMODEL.from_pretrained(
         args.base_model_name_or_path,
-        peft_model_name_or_path=args.peft_model_name_or_path,
+        #peft_model_name_or_path=args.peft_model_name_or_path,
         device_map="cuda" if torch.cuda.is_available() else "cpu",
         torch_dtype=torch.bfloat16,
     )
 
-    model = InstructIRModelWrapper(model=model, task_to_instructions=task_to_instructions)
+
+    model = InstructIRModelWrapper(model=model)
     tasks = mteb.get_tasks(tasks=["Core17InstructionRetrieval"])
     evaluation = mteb.MTEB(tasks=tasks)
-    results = evaluation.run(model, output_folder=args.output_dir)
+    results = evaluation.run(model, output_folder=args.output_dir, batch_size=8)

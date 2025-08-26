@@ -1,35 +1,27 @@
-import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 import torch
 from torch import nn
-from accelerate import Accelerator, DistributedDataParallelKwargs
-from accelerate.logging import get_logger
 import transformers
 from transformers import (
-    MODEL_FOR_MASKED_LM_MAPPING,
-    HfArgumentParser,
     TrainingArguments,
     Trainer,
     TrainerCallback,
-    set_seed,
 )
-from transformers.trainer_utils import seed_worker
-
 from peft import LoraConfig, get_peft_model
-from tqdm import tqdm
 from dataset.msmarco import MSMARCO
 from models.instract_ir_model import INSRTUCTIRMODEL
 from loss.contrastive_loss import ContrastiveLoss
-from loss.similarity_ranking_loss import SimilarityRankingLoss
+from loss.similarity_margin_loss import SimilarityMarginLoss
 import random
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 import wandb
-
+from distutils.util import strtobool
+import argparse
 
 @dataclass
 class DefaultCollator:
@@ -74,12 +66,14 @@ class ContrastiveTrainer(Trainer):
         self,
         *args,
         contrastive_loss=None,
-        ranking_loss=None,
+        margin_loss=None,
+        loss_lambda: float = 0.1,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.contrastive_loss = contrastive_loss
-        self.ranking_loss = ranking_loss
+        self.margin_loss = margin_loss
+        self.loss_lambda = loss_lambda
 
     def compute_loss(
         self,
@@ -97,16 +91,21 @@ class ContrastiveTrainer(Trainer):
         d_reps_neg = self.model(features[2]) # 2番目は指示文を考慮すると関連しない負例文書
 
         x_reps_pos = self.model(features[3]) # 3番目は、クエリと正例指示文
-        x_reps_neg = self.model(features[4]) # 4番目は、クエリと負例指示文
 
-        similarity_pos_score = similarity_scores[:, 0]
         similarity_neg_score = similarity_scores[:, 1] # 負例の類似度スコア
 
-        loss1 = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
-        loss2 = self.ranking_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
+        if self.contrastive_loss is not None and self.margin_loss is None:
+            print("*** Calculate Only Contrastive Loss ... ***")
+            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
 
-        loss = loss1 + loss2
+        elif self.contrastive_loss is None and self.margin_loss is not None:
+            print("*** Calculate Only Ranking Loss ... ***")
+            loss = self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
 
+        elif self.contrastive_loss is not None and self.margin_loss is not None:
+            print("*** Calculate Both Losses ... ***")
+            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg) + self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
+            
         return loss
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
@@ -114,8 +113,6 @@ class ContrastiveTrainer(Trainer):
         os.makedirs(output_dir, exist_ok=True)
     
         self.model.save(output_dir)
-
-        # Good practice: save your training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, "training_args.bin"))
 
 
@@ -167,7 +164,29 @@ def initialize_peft(
     return model
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="InstructIR Training Script")
+
+    # wandb arguments
+    parser.add_argument("--wandb_name", default="run-1", help="WandB run name")
+    parser.add_argument("--use_wandb", type=lambda x: bool(strtobool(x)), default=False, help="Use wandb logging")
+
+    # save_model_path
+    parser.add_argument("--output_dir", default="/data/sugiyama/save_model/rankloss",
+                       help="Output directory")
+    
+    # loss
+    parser.add_argument("--use_contrastive_loss", type=lambda x: bool(strtobool(x)), default=False, help="Use contrastive loss")
+    parser.add_argument("--use_margin_loss", type=lambda x: bool(strtobool(x)), default=False, help="Use ranking loss")
+    parser.add_argument("--alpha", type=float, default=0.4, help="Alpha parameter for ranking loss")
+    parser.add_argument("--beta", type=float, default=0.1, help="Beta parameter for ranking loss")
+
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+    
     fix_seeds()
     msmarco = MSMARCO()
     train_examples = [i for i in msmarco]
@@ -186,40 +205,28 @@ def main():
 
     tokenizer = model.tokenizer
 
-    contrastive_loss = ContrastiveLoss()
-    ranking_loss = SimilarityRankingLoss()
+    contrastive_loss = ContrastiveLoss() if args.use_contrastive_loss else None
+    margin_loss = SimilarityMarginLoss(alpha=args.alpha, beta=args.beta) if args.use_margin_loss else None
 
     data_collator = DefaultCollator(model)
-
-
-    # dataloader = DataLoader(train_examples, batch_size=8, collate_fn=DefaultCollator(model))
-    # for sentence_features, labels in dataloader:
-    #     print(sentence_features[0])
-    #     print("*"*100)
-    #     print(labels)
-    #     import sys
-    #     sys.exit()
     
-    wandb.init(project="instructir", name="run-1")
+    wandb.init(project="instructir", name=args.wandb_name) if args.use_wandb else None
 
     training_args = TrainingArguments(
-        output_dir = "/data/sugiyama/save_model/rankloss",
-        num_train_epochs = 1,
-        per_device_train_batch_size = 8,
-        #per_device_eval_batch_size = 32,
+        output_dir = args.output_dir,
+        num_train_epochs = 32,
+        per_device_train_batch_size = 1,
         logging_steps = 10,
-        gradient_accumulation_steps = 2,
-        #warmup_steps = 300,
+        #gradient_accumulation_steps = 2,
+        warmup_steps = 500,
         warmup_ratio = 0.1,
         weight_decay = 0.01,
         learning_rate = 5e-5,
         max_grad_norm = 1.0,
-        #load_best_model_at_end = True,
         save_strategy = "steps",
-        #eval_strategy = "epoch",
-        #save_total_limit = 1,
+        save_steps = 500,
         fp16=False,
-        report_to="wandb",
+        report_to="wandb" if args.use_wandb else "none",
     )
 
     trainer = ContrastiveTrainer(
@@ -229,14 +236,10 @@ def main():
         data_collator=data_collator,
         tokenizer=tokenizer,
         contrastive_loss=contrastive_loss,
-        ranking_loss=ranking_loss,
+        margin_loss=margin_loss,
     )
 
-    # if custom_args.stop_after_n_steps is not None:
-    #     trainer.add_callback(StopTrainingCallback(custom_args.stop_after_n_steps))
-
     trainer.train()
-
 
 
 if __name__ == "__main__":

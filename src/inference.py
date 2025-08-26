@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 
 l2v = INSRTUCTIRMODEL.from_pretrained(
         "meta-llama/Llama-3.2-1B-Instruct",
-        peft_model_name_or_path="/data/sugiyama/save_model/test/checkpoint-2423",
+        peft_model_name_or_path="/data/sugiyama/save_model/test/checkpoint-500",
         device_map="cuda" if torch.cuda.is_available() else "cpu",
         torch_dtype=torch.bfloat16,
     )
@@ -37,9 +37,7 @@ d_reps = l2v.encode(documents)
 
 # Compute cosine similarity
 
-print(q_reps)
 q_reps_norm = torch.nn.functional.normalize(q_reps, p=2, dim=1)
-print(q_reps_norm)
 d_reps_norm = torch.nn.functional.normalize(d_reps, p=2, dim=1)
 cos_sim = torch.mm(q_reps_norm, d_reps_norm.transpose(0, 1))
 

@@ -3,13 +3,17 @@ from torch import nn, Tensor
 from .loss_utils import cos_sim, mismatched_sizes_all_gather
 
 
-class SimilarityRankingLoss:
+class SimilarityMarginLoss:
     def __init__(
         self,
         similarity_fct=nn.CosineSimilarity(dim=-1),
+        alpha: float = 0.4,
+        beta: float = 0.1,
     ):
         self.similarity_fct = similarity_fct
-        self.triplet_loss = MarginRankingLoss()
+        self.alpha = alpha
+        self.beta = beta
+        self.margin_loss = MarginLoss(alpha=self.alpha, beta=self.beta)
 
     def __call__(
         self,
@@ -38,20 +42,26 @@ class SimilarityRankingLoss:
 
             full_d_reps_pos = d_reps_pos # 正例文書
             full_d_reps_neg = d_reps_neg # 指示文を考慮すると関連しない負例文書
-        
+
+            batch_size = d_reps_neg.size(0)
+            random_indices = torch.randperm(batch_size, device=d_reps_neg.device)
+            full_d_reps_hard_neg = d_reps_neg[random_indices] # バッチ内の無関係な負例文書
+
         pos_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_pos) # 正例文書：Positive
         neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_neg) # 負例文書：Negative
+        hard_neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_hard_neg) # バッチ内の無関係な負例文書：Hard Negative
 
-        loss = self.triplet_loss(neg_scores, pos_scores, similarity_neg_score)
-
+        loss = self.margin_loss(neg_scores, pos_scores, hard_neg_scores, similarity_neg_score)
         return loss
 
-class MarginRankingLoss(nn.Module):
+class MarginLoss(nn.Module):
     def __init__(self, alpha: float = 0.4, beta: float = 0.1):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
 
-    def forward(self, pos_scores: Tensor, neg_scores: Tensor, similarity_neg_score: Tensor):
-        similarity_neg_score = self.alpha * similarity_neg_score + self.beta
-        return torch.clamp(similarity_neg_score - pos_scores + neg_scores, min=0.0).mean()
+    def forward(self, pos_scores: Tensor, neg_scores: Tensor, hard_neg_scores: Tensor, tau_neg_score: Tensor):
+        tau_neg_score = self.alpha * tau_neg_score + self.beta
+        print(self.alpha, self.beta)
+        loss = torch.clamp(tau_neg_score + neg_scores - pos_scores, min=0.0).sum() + torch.clamp(0.1 + hard_neg_scores - pos_scores, min=0.0).sum()
+        return loss
