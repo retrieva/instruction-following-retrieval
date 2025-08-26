@@ -10,14 +10,10 @@ from evaluation.instructions import task_to_instruction
 from evaluation.text_formatting_utils import corpus_to_texts
 from sentence_transformers import SentenceTransformer
 
-def llm2vec_instruction(instruction):
-    if len(instruction) > 0 and instruction[-1] != ":":
-        instruction = instruction.strip(".") + ":"
-    return instruction
 
 class InstructIRModelWrapper():
     def __init__(self, model=None, task_to_instructions=None):
-        self.task_to_instructions = task_to_instructions
+        #self.task_to_instructions = task_to_instructions
         self.model = model
 
     def encode(
@@ -29,34 +25,10 @@ class InstructIRModelWrapper():
         prompt_type: PromptType | None = None,
         **kwargs: Any,
     ) -> np.ndarray:
-        if prompt_name is not None:
-            instruction = (
-                self.task_to_instructions[prompt_name]
-                if self.task_to_instructions
-                and prompt_name in self.task_to_instructions
-                else llm2vec_instruction(task_to_instruction(prompt_name))
-            )
-        else:
-            instruction = ""
+        
+        encoded = self.model.encode(sentences, **kwargs)
 
-        sentences = [[instruction, sentence] for sentence in sentences]
         return self.model.encode(sentences, **kwargs)
-
-    def encode_corpus(
-        self,
-        corpus: list[dict[str, str]] | dict[str, list[str]] | list[str],
-        prompt_name: str = None,
-        **kwargs: Any,
-    ) -> np.ndarray:
-        sentences = corpus_to_texts(corpus, sep=" ")
-        sentences = [["", sentence] for sentence in sentences]
-        if "request_qid" in kwargs:
-            kwargs.pop("request_qid")
-        return self.model.encode(sentences, **kwargs)
-
-    def encode_queries(self, queries: list[str], **kwargs: Any) -> np.ndarray:
-        return self.encode(queries, **kwargs)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -69,7 +41,7 @@ if __name__ == "__main__":
         "--peft_model_name_or_path",
         type=str,
         default="/data/sugiyama/save_model/test/checkpoint-2423",
-    )
+    )# /data/sugiyama/save_model/rankloss/checkpoint-2422
     parser.add_argument("--task_name", type=str, default="STS16")
     parser.add_argument(
         "--task_to_instructions_fp",
@@ -92,6 +64,6 @@ if __name__ == "__main__":
     )
 
     model = InstructIRModelWrapper(model=model, task_to_instructions=task_to_instructions)
-    tasks = mteb.get_tasks(tasks=["MSMARCO"])
+    tasks = mteb.get_tasks(tasks=["Core17InstructionRetrieval"])
     evaluation = mteb.MTEB(tasks=tasks)
     results = evaluation.run(model, output_folder=args.output_dir)

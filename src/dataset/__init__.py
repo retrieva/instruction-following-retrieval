@@ -1,1 +1,2 @@
-from dataset.dataset import *
+from .dataset import *
+from .msmarco import MSMARCO

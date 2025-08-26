@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.10.0",
     "aiolimiter>=1.2.1",
+    "angle-emb>=0.5.6",
     "datasets>=4.0.0",
     "langchain>=0.3.27",
     "langchain-community>=0.3.27",

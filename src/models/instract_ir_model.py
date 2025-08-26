@@ -112,7 +112,7 @@ class INSRTUCTIRMODEL(nn.Module):
                 config_dict = json.load(fIn)
             config = PretrainedConfig.from_dict(config_dict)
             model.config._name_or_path = config._name_or_path
-        # For special case where config.json and adapter weights are in the same directory
+        
         if hasattr(model, "peft_config"):
             model = PeftModel.from_pretrained(
                 model,
@@ -180,13 +180,12 @@ class INSRTUCTIRMODEL(nn.Module):
         return text
 
     def tokenize(self, texts):
-        #texts_2 = []
+        texts_2 = []
         original_texts = []
         for text in texts:
-            # t = text.split("!@#$%^&*()")
-            # texts_2.append(t[1] if len(t) > 1 else "")
-            # original_texts.append("".join(t))
-            original_texts.append(text)
+            t = text.split("!@#$%^&*()")
+            texts_2.append(t[1] if len(t) > 1 else "")
+            original_texts.append("".join(t))
 
         original = self.tokenizer(
             original_texts,
@@ -195,46 +194,41 @@ class INSRTUCTIRMODEL(nn.Module):
             truncation=True,
             max_length=self.max_length,
         )
-        # embed_mask = None
-        # for t_i, t in enumerate(texts_2):
-        #     ids = self.tokenizer(
-        #         [t],
-        #         return_tensors="pt",
-        #         padding=True,
-        #         truncation=True,
-        #         max_length=self.max_length,
-        #         add_special_tokens=False,
-        #     )
-        #     if embed_mask is None:
-        #         e_m = torch.zeros_like(original["attention_mask"][t_i])
-        #         if len(ids["input_ids"][0]) > 0:
-        #             e_m[-len(ids["input_ids"][0]) :] = torch.ones(
-        #                 len(ids["input_ids"][0])
-        #             )
-        #         embed_mask = e_m.unsqueeze(0)
-        #     else:
-        #         e_m = torch.zeros_like(original["attention_mask"][t_i])
-        #         if len(ids["input_ids"][0]) > 0:
-        #             e_m[-len(ids["input_ids"][0]) :] = torch.ones(
-        #                 len(ids["input_ids"][0])
-        #             )
-        #         embed_mask = torch.cat((embed_mask, e_m.unsqueeze(0)), dim=0)
+        embed_mask = None
+        for t_i, t in enumerate(texts_2):
+            ids = self.tokenizer(
+                [t],
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=self.max_length,
+                add_special_tokens=False,
+            )
+            if embed_mask is None:
+                e_m = torch.zeros_like(original["attention_mask"][t_i])
+                if len(ids["input_ids"][0]) > 0:
+                    e_m[-len(ids["input_ids"][0]) :] = torch.ones(
+                        len(ids["input_ids"][0])
+                    )
+                embed_mask = e_m.unsqueeze(0)
+            else:
+                e_m = torch.zeros_like(original["attention_mask"][t_i])
+                if len(ids["input_ids"][0]) > 0:
+                    e_m[-len(ids["input_ids"][0]) :] = torch.ones(
+                        len(ids["input_ids"][0])
+                    )
+                embed_mask = torch.cat((embed_mask, e_m.unsqueeze(0)), dim=0)
 
-        # original["embed_mask"] = embed_mask
+        original["embed_mask"] = embed_mask
         return original
-
-    # def _skip_instruction(self, sentence_feature):
-    #     assert (
-    #         sentence_feature["attention_mask"].shape
-    #         == sentence_feature["embed_mask"].shape
-    #     )
-    #     sentence_feature["attention_mask"] = sentence_feature["embed_mask"]
 
     def forward(self, sentence_feature: Dict[str, Tensor]):
         embed_mask = None
         if "embed_mask" in sentence_feature:
             embed_mask = sentence_feature.pop("embed_mask")
+
         reps = self.model(**sentence_feature)
+
         sentence_feature["embed_mask"] = embed_mask
 
         return self.get_pooling(sentence_feature, reps.last_hidden_state)
@@ -243,8 +237,7 @@ class INSRTUCTIRMODEL(nn.Module):
         assert (
             self.tokenizer.padding_side == "left"
         ), "Pooling modes are implemented for padding from left."
-        # if self.skip_instruction:
-        #     self._skip_instruction(features)
+
         seq_lengths = features["attention_mask"].sum(dim=-1)
         if self.pooling_mode == "mean":
             return torch.stack(
@@ -345,8 +338,6 @@ class INSRTUCTIRMODEL(nn.Module):
                 self._convert_to_str(sentence[0], sentence[1])
             )
         sentences = concatenated_input_texts
-
-        self.eval()
 
         if convert_to_tensor:
             convert_to_numpy = False

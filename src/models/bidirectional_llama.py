@@ -104,24 +104,11 @@ class LlamaBiModel(LlamaModel):
             if attention_mask is not None and 0.0 in attention_mask:
                 return attention_mask
             return None
-
-        # For SDPA, when possible, we will rely on its `is_causal` argument instead of its `attn_mask` argument, in
-        # order to dispatch on Flash Attention 2. This feature is not compatible with static cache, as SDPA will fail
-        # to infer the attention mask.
+        
         past_seen_tokens = (
             past_key_values.get_seq_length() if past_key_values is not None else 0
         )
         using_static_cache = isinstance(past_key_values, StaticCache)
-
-        # When output attentions is True, sdpa implementation's forward method calls the eager implementation's forward
-        # if self.config._attn_implementation == "sdpa" and not using_static_cache and not output_attentions:
-        #     if AttentionMaskConverter._ignore_causal_mask_sdpa(
-        #         attention_mask,
-        #         inputs_embeds=input_tensor,
-        #         past_key_values_length=past_seen_tokens,
-        #         is_training=self.training,
-        #     ):
-        #         return None
 
         dtype, device = input_tensor.dtype, input_tensor.device
         min_dtype = torch.finfo(dtype).min
@@ -137,10 +124,7 @@ class LlamaBiModel(LlamaModel):
 
         causal_mask = torch.zeros(
             (sequence_length, target_length), dtype=dtype, device=device
-        )  # in original implementation - torch.full((sequence_length, target_length), fill_value=min_dtype, dtype=dtype, device=device)
-        # Commenting out next 2 lines to disable causal masking
-        # if sequence_length != 1:
-        #     causal_mask = torch.triu(causal_mask, diagonal=1)
+        )  
         causal_mask *= torch.arange(
             target_length, device=device
         ) > cache_position.reshape(-1, 1)
@@ -150,7 +134,7 @@ class LlamaBiModel(LlamaModel):
         if attention_mask is not None:
             causal_mask = (
                 causal_mask.clone()
-            )  # copy to contiguous memory for in-place edit
+            )  
             if attention_mask.dim() == 2:
                 mask_length = attention_mask.shape[-1]
                 padding_mask = causal_mask[..., :mask_length].eq(0.0) * attention_mask[
@@ -160,8 +144,6 @@ class LlamaBiModel(LlamaModel):
                     ..., :mask_length
                 ].masked_fill(padding_mask, min_dtype)
             elif attention_mask.dim() == 4:
-                # backwards compatibility: we allow passing a 4D attention mask shorter than the input length with
-                # cache. In that case, the 4D attention mask attends to the newest tokens only.
                 if attention_mask.shape[-2] < cache_position[0] + sequence_length:
                     offset = cache_position[0]
                 else:

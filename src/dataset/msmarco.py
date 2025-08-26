@@ -1,8 +1,10 @@
 from typing import List
-from dataset import DataSample, TrainSample, Dataset
+from .dataset import DataSample, TrainSample, Dataset
 from datasets import load_dataset
 from accelerate.logging import get_logger
 logger = get_logger(__name__, log_level="INFO")
+from .similarity import UAESIMILARITY
+import json 
 
 class MSMARCO(Dataset):
     """
@@ -13,10 +15,13 @@ class MSMARCO(Dataset):
         self,
         dataset_name: str = "msmarco",
         file_path: str = "InF-IR/InF-IR",
+        similarity_file_path: str = "/home/seiji_sugiyama/works/instructir/dataset/similarity/similarity.json"
     ):
         self.dataset_name: str = dataset_name
         self.data: List = []
+        self.similarity_data: List = []
         self.file_path: str = file_path
+        self.similarity_file_path: str = similarity_file_path
         self.load_data()
 
     def __len__(self) -> int:
@@ -28,6 +33,8 @@ class MSMARCO(Dataset):
         """
         #logger.info(f"Loading MSMARCO data from {self.file_path} ...")
         datasets = load_dataset(self.file_path)
+        with open(self.similarity_file_path, "r") as f:
+            self.similarity_data = json.load(f)
 
         for i, dataset in enumerate(datasets["msmarco"]):
             self.data.append(
@@ -39,12 +46,16 @@ class MSMARCO(Dataset):
                     x_positive = dataset["instruction_positive"] + dataset["query_positive"],
                     x_negative = dataset["instruction_negative"] + dataset["query_positive"],
                     passage_positive = dataset["document_positive"],
-                    passage_negative = dataset["hard_negative_document_1"]
+                    passage_negative = dataset["hard_negative_document_1"],
+                    similarity_pos = self.similarity_data[i]["positive_score"],
+                    similarity_neg = self.similarity_data[i]["negative_score"],
                 )
             )
     
     def __getitem__(self, index):
         sample = self.data[index]
         return TrainSample(
-            texts=[sample.query, sample.passage_positive, sample.passage_negative, sample.x_positive, sample.x_negative], label=1.0
+            texts=[sample.query, sample.passage_positive, sample.passage_negative, sample.x_positive, sample.x_negative], 
+            label=1.0,
+            similarity_score=[sample.similarity_pos, sample.similarity_neg]
         )

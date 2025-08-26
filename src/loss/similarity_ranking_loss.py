@@ -8,7 +8,7 @@ class SimilarityRankingLoss:
         similarity_fct=nn.CosineSimilarity(dim=-1),
     ):
         self.similarity_fct = similarity_fct
-        self.triplet_loss = MarginRankingLoss(margin=0.1)
+        self.triplet_loss = MarginRankingLoss()
 
     def __call__(
         self,
@@ -16,9 +16,8 @@ class SimilarityRankingLoss:
         d_reps_pos: Tensor,
         d_reps_neg: Tensor,
         x_reps_pos: Tensor,
+        similarity_neg_score: Tensor = None,
     ):
-        if d_reps_neg is None:
-            d_reps_neg = d_reps_pos[:0, :]
 
         if torch.distributed.is_initialized():
             full_d_reps_pos = mismatched_sizes_all_gather(d_reps_pos)
@@ -40,13 +39,16 @@ class SimilarityRankingLoss:
         pos_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_pos) # 正例文書：Positive
         neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_neg) # 負例文書：Negative
 
-        loss = self.triplet_loss(neg_scores,pos_scores)
+        loss = self.triplet_loss(neg_scores, pos_scores, similarity_neg_score)
+
         return loss
 
 class MarginRankingLoss(nn.Module):
-    def __init__(self, margin: float = 0.1):
-        super(MarginRankingLoss, self).__init__()
-        self.margin = margin
+    def __init__(self, alpha: float = 0.4, beta: float = 0.1):
+        super().__init__()
+        self.alpha = alpha
+        self.beta = beta
 
-    def forward(self, pos_scores: Tensor, neg_scores: Tensor):
-        return torch.clamp(self.margin - pos_scores + neg_scores, min=0.0).mean()
+    def forward(self, pos_scores: Tensor, neg_scores: Tensor, similarity_neg_score: Tensor):
+        similarity_neg_score = self.alpha * similarity_neg_score + self.beta
+        return torch.clamp(similarity_neg_score - pos_scores + neg_scores, min=0.0).mean()

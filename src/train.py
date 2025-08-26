@@ -42,19 +42,22 @@ class DefaultCollator:
         num_texts = len(batch[0].texts) # query, d_pos, d_neg
         texts = [[] for _ in range(num_texts)]
         labels = []
+        similairty_scores = []
 
         for example in batch:
             for idx, text in enumerate(example.texts):
                 texts[idx].append(text)
             labels.append(example.label)
+            similairty_scores.append(example.similarity_score)
         labels = torch.tensor(labels)
+        similairty_scores = torch.tensor(similairty_scores)
 
         sentence_features = []
         for idx in range(num_texts):
             tokenized = self.model.tokenize(texts[idx])
             sentence_features.append(tokenized)
 
-        return sentence_features, labels
+        return sentence_features, labels, similairty_scores
 
 # 訓練をストップさせる
 class StopTrainingCallback(TrainerCallback):
@@ -85,7 +88,8 @@ class ContrastiveTrainer(Trainer):
         return_outputs: bool = False,
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         
-        features, labels = inputs
+        
+        features, labels, similarity_scores = inputs
 
         q_reps = self.model(features[0]) # 0番目はクエリ
 
@@ -95,8 +99,11 @@ class ContrastiveTrainer(Trainer):
         x_reps_pos = self.model(features[3]) # 3番目は、クエリと正例指示文
         x_reps_neg = self.model(features[4]) # 4番目は、クエリと負例指示文
 
+        similarity_pos_score = similarity_scores[:, 0]
+        similarity_neg_score = similarity_scores[:, 1] # 負例の類似度スコア
+
         #loss1 = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
-        loss2 = self.ranking_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, x_reps_neg)
+        loss2 = self.ranking_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
 
         # if return_outputs:
         #     output = torch.cat(
@@ -107,11 +114,9 @@ class ContrastiveTrainer(Trainer):
         return loss2
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        # If we are executing this function, we are the process zero, so we don't check for that.
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
-        #logger.info(f"Saving model checkpoint to {output_dir}")
-
+    
         self.model.save(output_dir)
 
         # Good practice: save your training arguments together with the trained model
@@ -199,15 +204,15 @@ def main():
     #     import sys
     #     sys.exit()
     
-    #wandb.init(project="instructir", name="run-1")
+    wandb.init(project="instructir", name="run-1")
 
     training_args = TrainingArguments(
         output_dir = "/data/sugiyama/save_model/rankloss",
         num_train_epochs = 1,
-        per_device_train_batch_size = 16,
+        per_device_train_batch_size = 8,
         #per_device_eval_batch_size = 32,
         logging_steps = 10,
-        #gradient_accumulation_steps = 1,
+        gradient_accumulation_steps = 2,
         #warmup_steps = 300,
         warmup_ratio = 0.1,
         weight_decay = 0.01,
@@ -218,7 +223,7 @@ def main():
         #eval_strategy = "epoch",
         #save_total_limit = 1,
         fp16=False,
-        report_to="none",
+        report_to="wandb",
     )
 
     trainer = ContrastiveTrainer(
