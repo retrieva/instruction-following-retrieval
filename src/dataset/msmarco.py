@@ -15,7 +15,7 @@ class MSMARCO(Dataset):
         self,
         dataset_name: str = "msmarco",
         file_path: str = "InF-IR/InF-IR",
-        similarity_file_path: str = "/home/seiji_sugiyama/works/instructir/dataset/similarity/similarity.json"
+        similarity_file_path: str = "./dataset/similarity/similarity.json"
     ):
         self.dataset_name: str = dataset_name
         self.data: List = []

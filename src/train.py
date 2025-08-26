@@ -167,6 +167,7 @@ def initialize_peft(
 def parse_args():
     parser = argparse.ArgumentParser(description="InstructIR Training Script")
 
+    parser.add_argument("--similarity_file_path", default="./dataset/similarity/similarity.json")
     # wandb arguments
     parser.add_argument("--wandb_name", default="run-1", help="WandB run name")
     parser.add_argument("--use_wandb", type=lambda x: bool(strtobool(x)), default=False, help="Use wandb logging")
@@ -186,9 +187,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    
     fix_seeds()
-    msmarco = MSMARCO()
+
+    msmarco = MSMARCO(similarity_file_path=args.similarity_file_path)
     train_examples = [i for i in msmarco]
 
     model = INSRTUCTIRMODEL.from_pretrained(

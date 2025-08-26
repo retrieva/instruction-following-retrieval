@@ -4,10 +4,13 @@
 #PJM -L elapse=00:35:00
 #PJM -j
 
-BASE_PATH="save_model"
+module load cuda cudnn nccl gcc
+. .venv/bin/activate
+
+BASE_PATH="./save_model"
 
 USE_WANDB=False
-CONTRASTIVE_LOSS=True
+CONTRASTIVE_LOSS=False
 MARGIN_LOSS=True
 ALPHA=0.4
 BETA=0.1
@@ -27,7 +30,8 @@ fi
 FULL_PATH="${BASE_PATH}/${FOLDER_NAME}"
 mkdir -p ${FULL_PATH}
 
-python ../src/train.py \
+python ./src/train.py \
+ --similarity_file_path ./dataset/similarity/similarity.json \
  --wandb_name ${WANDB_NAME} \
  --use_wandb ${USE_WANDB} \
  --output_dir ${FULL_PATH} \
