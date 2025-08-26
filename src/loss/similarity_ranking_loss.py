@@ -26,6 +26,9 @@ class SimilarityRankingLoss:
             full_q_reps = mismatched_sizes_all_gather(q_reps)
             full_q_reps = torch.cat(full_q_reps)
 
+            full_x_reps_pos = mismatched_sizes_all_gather(x_reps_pos)
+            full_x_reps_pos = torch.cat(full_x_reps_pos)
+
             full_d_reps_neg = mismatched_sizes_all_gather(d_reps_neg)
             full_d_reps_neg = torch.cat(full_d_reps_neg)
         else:
