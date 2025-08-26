@@ -2,6 +2,7 @@ import torch
 from torch import nn, Tensor
 from .loss_utils import cos_sim, mismatched_sizes_all_gather
 
+
 class SimilarityRankingLoss:
     def __init__(
         self,
@@ -34,7 +35,6 @@ class SimilarityRankingLoss:
         else:
             full_q_reps = q_reps
             full_x_reps_pos = x_reps_pos # クエリと正例指示文
-            #full_x_reps_neg = x_reps_neg # クエリと負例指示文
 
             full_d_reps_pos = d_reps_pos # 正例文書
             full_d_reps_neg = d_reps_neg # 指示文を考慮すると関連しない負例文書

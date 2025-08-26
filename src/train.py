@@ -102,16 +102,12 @@ class ContrastiveTrainer(Trainer):
         similarity_pos_score = similarity_scores[:, 0]
         similarity_neg_score = similarity_scores[:, 1] # 負例の類似度スコア
 
-        #loss1 = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
+        loss1 = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
         loss2 = self.ranking_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
 
-        # if return_outputs:
-        #     output = torch.cat(
-        #         [model(row)["sentence_embedding"][:, None] for row in features], dim=1
-        #     )
-        #     return loss, output
+        loss = loss1 + loss2
 
-        return loss2
+        return loss
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         output_dir = output_dir if output_dir is not None else self.args.output_dir
