@@ -1,11 +1,11 @@
 #!/bin/sh
-#PJM -L rscgrp=b-batch
-#PJM -L gpu=1
-#PJM -L elapse=00:35:00
-#PJM -j
+## PJM -L rscgrp=b-batch
+## PJM -L gpu=1
+## PJM -L elapse=00:35:00
+## PJM -j
 
-module load cuda cudnn nccl gcc
-. .venv/bin/activate
+# module load cuda cudnn nccl gcc
+# . .venv/bin/activate
 
 SAVEMODEL_BASE_PATH="./save_model"
 RESULTM_BASE_PATH="./src/results"
