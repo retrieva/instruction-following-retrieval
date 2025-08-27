@@ -51,7 +51,7 @@ class SimilarityMarginLoss:
         neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_neg) # 負例文書：Negative
         hard_neg_scores = self.similarity_fct(full_x_reps_pos, full_d_reps_hard_neg) # バッチ内の無関係な負例文書：Hard Negative
 
-        loss = self.margin_loss(neg_scores, pos_scores, hard_neg_scores, similarity_neg_score)
+        loss = self.margin_loss(pos_scores, neg_scores, hard_neg_scores, similarity_neg_score)
         return loss
 
 class MarginLoss(nn.Module):
@@ -61,7 +61,6 @@ class MarginLoss(nn.Module):
         self.beta = beta
 
     def forward(self, pos_scores: Tensor, neg_scores: Tensor, hard_neg_scores: Tensor, tau_neg_score: Tensor):
-        tau_neg_score = self.alpha * tau_neg_score + self.beta
-        print(self.alpha, self.beta)
+        vv = self.alpha * tau_neg_score + self.beta
         loss = torch.clamp(tau_neg_score + neg_scores - pos_scores, min=0.0).sum() + torch.clamp(0.1 + hard_neg_scores - pos_scores, min=0.0).sum()
         return loss

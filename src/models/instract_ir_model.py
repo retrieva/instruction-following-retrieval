@@ -152,6 +152,13 @@ class INSRTUCTIRMODEL(nn.Module):
                 + "<|eot_id|>"
             )
             return text
+        if self.model.config._name_or_path == "meta-llama/Llama-3.2-1B-Instruct":
+            text = (
+                "<|start_header_id|>user<|end_header_id|>\n\n"
+                + text.strip()
+                + "<|eot_id|>"
+            )
+            return text
         if self.model.config._name_or_path in [
             "mistralai/Mistral-7B-Instruct-v0.2",
             "meta-llama/Llama-2-7b-chat-hf",

@@ -83,16 +83,16 @@ class ContrastiveTrainer(Trainer):
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         
         
-        features, labels, similarity_scores = inputs
+        features, labels, tau_score = inputs
 
         q_reps = self.model(features[0]) # 0番目はクエリ
 
-        d_reps_pos = self.model(features[1]) # 1番目は正例文書
-        d_reps_neg = self.model(features[2]) # 2番目は指示文を考慮すると関連しない負例文書
+        d_reps_pos = self.model(features[1]) # 1番目は、正例文書
+        d_reps_neg = self.model(features[2]) # 2番目は、指示文を考慮すると関連しない負例文書
 
         x_reps_pos = self.model(features[3]) # 3番目は、クエリと正例指示文
 
-        similarity_neg_score = similarity_scores[:, 1] # 負例の類似度スコア
+        tau_neg_score = tau_score[:, 1] # 負例の類似度スコア（τ）
 
         if self.contrastive_loss is not None and self.margin_loss is None:
             print("*** Calculate Only Contrastive Loss ... ***")
@@ -100,12 +100,12 @@ class ContrastiveTrainer(Trainer):
 
         elif self.contrastive_loss is None and self.margin_loss is not None:
             print("*** Calculate Only Ranking Loss ... ***")
-            loss = self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
+            loss = self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, tau_neg_score)
 
         elif self.contrastive_loss is not None and self.margin_loss is not None:
             print("*** Calculate Both Losses ... ***")
-            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg) + self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, similarity_neg_score)
-            
+            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg) + self.loss_lambda * self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, tau_neg_score)
+
         return loss
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
@@ -170,15 +170,15 @@ def parse_args():
     parser.add_argument("--similarity_file_path", default="./dataset/similarity/similarity.json")
     # wandb arguments
     parser.add_argument("--wandb_name", default="run-1", help="WandB run name")
-    parser.add_argument("--use_wandb", type=lambda x: bool(strtobool(x)), default=False, help="Use wandb logging")
+    parser.add_argument("--use_wandb", type=lambda x: bool(strtobool(x)), default=True, help="Use wandb logging")
 
     # save_model_path
-    parser.add_argument("--output_dir", default="/data/sugiyama/save_model/rankloss",
+    parser.add_argument("--output_dir", default="/data/sugiyama/save_model/contrastive-margin-loss",
                        help="Output directory")
     
     # loss
-    parser.add_argument("--use_contrastive_loss", type=lambda x: bool(strtobool(x)), default=False, help="Use contrastive loss")
-    parser.add_argument("--use_margin_loss", type=lambda x: bool(strtobool(x)), default=False, help="Use ranking loss")
+    parser.add_argument("--use_contrastive_loss", type=lambda x: bool(strtobool(x)), default=True, help="Use contrastive loss")
+    parser.add_argument("--use_margin_loss", type=lambda x: bool(strtobool(x)), default=True, help="Use ranking loss")
     parser.add_argument("--alpha", type=float, default=0.4, help="Alpha parameter for ranking loss")
     parser.add_argument("--beta", type=float, default=0.1, help="Beta parameter for ranking loss")
 
@@ -238,6 +238,7 @@ def main():
         tokenizer=tokenizer,
         contrastive_loss=contrastive_loss,
         margin_loss=margin_loss,
+        loss_lambda=loss_lambda,
     )
 
     trainer.train()

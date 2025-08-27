@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 
 l2v = INSRTUCTIRMODEL.from_pretrained(
         "meta-llama/Llama-3.2-1B-Instruct",
-        peft_model_name_or_path="/data/sugiyama/save_model/test/checkpoint-500",
+        peft_model_name_or_path="/data/sugiyama/save_model/rankloss/checkpoint-300",
         device_map="cuda" if torch.cuda.is_available() else "cpu",
         torch_dtype=torch.bfloat16,
     )
