@@ -38,22 +38,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--peft_model_name_or_path",
         type=str,
-        default="/data/sugiyama/save_model/test/checkpoint-2423",
+        default="../save_model/loss_w_contrastive/checkpoint-1212",
     )
     parser.add_argument("--task_name", type=str, default="STS16")
-    parser.add_argument("--output_dir", type=str, default="results")
+    parser.add_argument("--output_dir", type=str, default="results/loss_w_contrastive")
 
     args = parser.parse_args()
 
     model = INSRTUCTIRMODEL.from_pretrained(
         args.base_model_name_or_path,
-        #peft_model_name_or_path=args.peft_model_name_or_path,
+        peft_model_name_or_path=args.peft_model_name_or_path,
         device_map="cuda" if torch.cuda.is_available() else "cpu",
         torch_dtype=torch.bfloat16,
     )
 
-
     model = InstructIRModelWrapper(model=model)
     tasks = mteb.get_tasks(tasks=["Core17InstructionRetrieval"])
     evaluation = mteb.MTEB(tasks=tasks)
-    results = evaluation.run(model, output_folder=args.output_dir, batch_size=8)
+    results = evaluation.run(model, output_folder=args.output_dir,encode_kwargs={"batch_size": 128})

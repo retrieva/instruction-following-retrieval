@@ -9,7 +9,7 @@ module load cuda cudnn nccl gcc
 
 BASE_PATH="./save_model"
 
-USE_WANDB=False
+USE_WANDB=True
 CONTRASTIVE_LOSS=False
 MARGIN_LOSS=True
 ALPHA=0.4
