@@ -39,16 +39,22 @@ class MSMARCO(Dataset):
         for i, dataset in enumerate(datasets["msmarco"]):
             self.data.append(
                 DataSample(
-                    id = i,
-                    query = dataset["query_positive"],
-                    instruction_positive = dataset["instruction_positive"],
-                    instruction_negative = dataset["instruction_negative"],
-                    x_positive = dataset["instruction_positive"] + dataset["query_positive"],
-                    x_negative = dataset["instruction_negative"] + dataset["query_positive"],
-                    passage_positive = dataset["document_positive"],
-                    passage_negative = dataset["hard_negative_document_1"],
-                    similarity_pos = self.similarity_data[i]["positive_score"],
-                    similarity_neg = self.similarity_data[i]["negative_score"],
+                    id=i,
+                    query=dataset["query_positive"],
+                    instruction_positive=dataset["instruction_positive"],
+                    instruction_negative=dataset["instruction_negative"],
+                    x_positive=f'{dataset["instruction_positive"]}{dataset["query_positive"]}',
+                    x_negative=f'{dataset["instruction_negative"]}{dataset["query_positive"]}',
+                    passage_positive=dataset["document_positive"],
+                    passage_negative=dataset["hard_negative_document_1"],
+                    **{score_key: self.similarity_data[i][score_key] 
+                    for score_key in [
+                            "q_and_p_pos_score", "q_and_p_neg_score",
+                            "inst_pos_and_p_pos_score", "inst_pos_and_p_neg_score",
+                            "inst_neg_and_p_pos_score", "inst_neg_and_p_neg_score",
+                            "x_pos_and_p_pos_score", "x_pos_and_p_neg_score",
+                            "x_neg_and_p_pos_score", "x_neg_and_p_neg_score"
+                        ]}
                 )
             )
     
@@ -57,5 +63,5 @@ class MSMARCO(Dataset):
         return TrainSample(
             texts=[sample.query, sample.instruction_positive, sample.instruction_negative, sample.x_positive, sample.x_negative, sample.passage_positive, sample.passage_negative], 
             label=1.0,
-            similarity_score=[sample.similarity_pos, sample.similarity_neg]
+            similarity_score=[sample.q_and_p_pos_score, sample.q_and_p_neg_score, sample.inst_pos_and_p_pos_score, sample.inst_pos_and_p_neg_score, sample.inst_neg_and_p_pos_score, sample.inst_neg_and_p_neg_score, sample.x_pos_and_p_pos_score, sample.x_pos_and_p_neg_score, sample.x_neg_and_p_pos_score, sample.x_neg_and_p_neg_score]
         )

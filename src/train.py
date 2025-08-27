@@ -93,14 +93,29 @@ class ContrastiveTrainer(Trainer):
         inst_reps_pos = self.model(features[1]) # 正例指示文
         inst_reps_neg = self.model(features[2]) # 負例指示文
 
-        d_reps_pos = self.model(features[1])
-        d_reps_neg = self.model(features[2]) 
+        x_reps_pos = self.model(features[3]) # クエリ + 正例指示文
+        x_reps_neg = self.model(features[4]) # クエリ + 負例指示文
 
-        x_reps_pos = self.model(features[3])
-        x_reps_neg = self.model(features[4]) 
+        d_reps_pos = self.model(features[5]) # 正例文書
+        d_reps_neg = self.model(features[6]) # 負例文書
 
-        tau_pos_score = tau_score[:, 0] # 正例の類似度スコア（τ）
-        tau_neg_score = tau_score[:, 1] # 負例の類似度スコア（τ）
+
+        tau_q_and_p_pos_score = tau_score[:, 0]  # クエリと正例文書スコア（τ）
+        tau_q_and_p_neg_score = tau_score[:, 1]  # クエリと負例文書スコア（τ）
+
+        tau_inst_pos_and_p_pos_score = tau_score[:, 2]  # 正例指示文と正例文書スコア（τ）
+        tau_inst_pos_and_p_neg_score = tau_score[:, 3]  # 正例指示文と負例文書スコア（τ）
+
+        tau_inst_neg_and_p_pos_score = tau_score[:, 4]  # 負例指示文と正例文書スコア（τ）
+        tau_inst_neg_and_p_neg_score = tau_score[:, 5]  # 負例指示文と負例文書スコア（τ）
+
+        tau_x_pos_and_p_pos_score = tau_score[:, 6]  # クエリ+正例指示文と正例文書スコア（τ）
+        tau_x_pos_and_p_neg_score = tau_score[:, 7]  # クエリ+正例指示文と負例文書スコア（τ）
+        
+        tau_x_neg_and_p_pos_score = tau_score[:, 8]  # クエリ+負例指示文と正例文書スコア（τ）
+        tau_x_neg_and_p_neg_score = tau_score[:, 9]  # クエリ+負例指示文と負例文書スコア（τ）
+
+
 
         if self.contrastive_loss is not None and self.margin_loss is None:
             print("*** Calculate Only Contrastive Loss ... ***")
@@ -109,11 +124,11 @@ class ContrastiveTrainer(Trainer):
 
         elif self.contrastive_loss is None and self.margin_loss is not None:
             print("*** Calculate Only Ranking Loss ... ***")
-            loss = self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, tau_neg_score)
+            loss = self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, tau_q_and_p_neg_score)
 
         elif self.contrastive_loss is not None and self.margin_loss is not None:
             print("*** Calculate Both Losses ... ***")
-            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg) + self.loss_lambda * self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, tau_neg_score)
+            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg) + self.loss_lambda * self.margin_loss(q_reps, d_reps_pos, d_reps_neg, x_reps_pos, tau_q_and_p_neg_score)
 
         return loss
 

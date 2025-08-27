@@ -5,15 +5,32 @@ import torch
 @dataclass
 class DataSample:
     id: int
+
     query: str
-    instruction_positive:str
-    instruction_negative:str
+
+    instruction_positive: str
+    instruction_negative: str
+
     x_positive: str
     x_negative: str
+
     passage_positive: str
     passage_negative: str
-    similarity_pos:float
-    similarity_neg:float
+
+    q_and_p_pos_score: float
+    q_and_p_neg_score: float
+
+    inst_pos_and_p_pos_score: float
+    inst_pos_and_p_neg_score: float
+
+    inst_neg_and_p_pos_score: float
+    inst_neg_and_p_neg_score: float
+
+    x_pos_and_p_pos_score: float
+    x_pos_and_p_neg_score: float
+
+    x_neg_and_p_pos_score: float
+    x_neg_and_p_neg_score: float
 
 class TrainSample:
     """

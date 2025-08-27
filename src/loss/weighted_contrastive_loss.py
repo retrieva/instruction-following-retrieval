@@ -16,8 +16,29 @@ class WeightedContrastiveLoss:
     def __call__(
         self,
         q_reps: Tensor,
+        inst_reps_pos: Tensor,
+        inst_reps_neg: Tensor,
+        x_reps_pos: Tensor,
+        x_reps_neg: Tensor,
         d_reps_pos: Tensor,
-        d_reps_neg: Tensor = None,
+        d_reps_neg: Tensor,
+        tau_q_and_p_pos_score
+        tau_q_and_p_neg_score
+
+        tau_inst_pos_and_p_pos_score
+        tau_inst_pos_and_p_neg_score = tau_score[:, 3]  # 正例指示文と負例文書スコア（τ）
+
+        tau_inst_neg_and_p_pos_score = tau_score[:, 4]  # 負例指示文と正例文書スコア（τ）
+        tau_inst_neg_and_p_neg_score = tau_score[:, 5]  # 負例指示文と負例文書スコア（τ）
+
+        tau_x_pos_and_p_pos_score = tau_score[:, 6]  # クエリ+正例指示文と正例文書スコア（τ）
+        tau_x_pos_and_p_neg_score = tau_score[:, 7]  # クエリ+正例指示文と負例文書スコア（τ）
+        
+        tau_x_neg_and_p_pos_score = tau_score[:, 8]  # クエリ+負例指示文と正例文書スコア（τ）
+        tau_x_neg_and_p_neg_score = tau_score[:, 9]  # クエリ+負例指示文と負例文書スコア（τ）
+
+
+
     ):
         if d_reps_neg is None:
             d_reps_neg = d_reps_pos[:0, :]

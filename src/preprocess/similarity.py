@@ -8,7 +8,7 @@ def main():
     examples = [i for i in msmarco]
 
     angle = AnglE.from_pretrained('WhereIsAI/UAE-Large-V1', pooling_strategy='cls').cuda()
-    batch_size = 2
+    batch_size = 128
     
     scores = []
     id = 0
@@ -63,16 +63,16 @@ def main():
 
             scores.append({
                 "id": id,
-                "q_and_p_pos_score": q_and_p_pos_score,
-                "q_and_p_neg_score": q_and_p_neg_score,
-                "inst_pos_and_p_pos_score": inst_pos_and_p_pos_score,
-                "inst_pos_and_p_neg_score": inst_pos_and_p_neg_score,
-                "inst_neg_and_p_pos_score": inst_neg_and_p_pos_score,
-                "inst_neg_and_p_neg_score": inst_neg_and_p_neg_score,
-                "x_pos_and_p_pos_score": x_pos_and_p_pos_score,
-                "x_pos_and_p_neg_score": x_pos_and_p_neg_score,
-                "x_neg_and_p_pos_score": x_neg_and_p_pos_score,
-                "x_neg_and_p_neg_score": x_neg_and_p_neg_score,
+                "q_and_p_pos_score": float(q_and_p_pos_score),
+                "q_and_p_neg_score": float(q_and_p_neg_score),
+                "inst_pos_and_p_pos_score": float(inst_pos_and_p_pos_score),
+                "inst_pos_and_p_neg_score": float(inst_pos_and_p_neg_score),
+                "inst_neg_and_p_pos_score": float(inst_neg_and_p_pos_score),
+                "inst_neg_and_p_neg_score": float(inst_neg_and_p_neg_score),
+                "x_pos_and_p_pos_score": float(x_pos_and_p_pos_score),
+                "x_pos_and_p_neg_score": float(x_pos_and_p_neg_score),
+                "x_neg_and_p_pos_score": float(x_neg_and_p_pos_score),
+                "x_neg_and_p_neg_score": float(x_neg_and_p_neg_score),
             })
             id += 1
         
