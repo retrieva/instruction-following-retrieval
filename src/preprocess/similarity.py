@@ -2,13 +2,16 @@ from ..dataset.msmarco import MSMARCO
 from angle_emb import AnglE
 from angle_emb.utils import cosine_similarity
 from tqdm import tqdm
+from datasets import load_dataset
+
+
 
 def main():
-    msmarco = MSMARCO()
+    msmarco = load_dataset("InF-IR/InF-IR")["msmarco"]
     examples = [i for i in msmarco]
 
     angle = AnglE.from_pretrained('WhereIsAI/UAE-Large-V1', pooling_strategy='cls').cuda()
-    batch_size = 128
+    batch_size = 32
     
     scores = []
     id = 0
@@ -17,16 +20,16 @@ def main():
 
         all_texts = []
         for example in batch_examples:
-            query = example.texts[0]
+            query = example["query_positive"]
 
-            instruction_positive = example.texts[1]
-            instruction_negative = example.texts[2]
+            instruction_positive = example["instruction_positive"]
+            instruction_negative = example["instruction_negative"]
 
-            x_positive = example.texts[3]
-            x_negative = example.texts[4]
+            x_positive = example["instruction_positive"] + example["query_positive"]
+            x_negative = example["instruction_negative"] + example["query_positive"]
 
-            passage_positive = example.texts[5]
-            passage_negative = example.texts[6]
+            passage_positive = example["document_positive"]
+            passage_negative = example["hard_negative_document_1"]
 
             all_texts.extend([
                 query,
