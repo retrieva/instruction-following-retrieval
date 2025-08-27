@@ -52,7 +52,7 @@ if __name__ == "__main__":
         default="meta-llama/Llama-3.2-1B-Instruct",
     )
     parser.add_argument("--task_name", type=str, default="STS16")
-    parser.add_argument("--output_dir", type=str, default="results")
+    parser.add_argument("--output_dir", type=str, default="results/llama3.2-1B")
     args = parser.parse_args()
 
     model = LLamaModelWrapper(model_name=args.model_name)

@@ -1,7 +1,13 @@
 .venv
 dataset/IFIR
-results
 download
 evaluation2
 log.txt
+<<<<<<< HEAD
 save_model
+=======
+save_model/*
+wandb/
+>>>>>>> origin/genkai
+__pycache__/
+*.pyc

@@ -13,20 +13,20 @@ from sentence_transformers import SentenceTransformer
 
 class InstructIRModelWrapper():
     def __init__(self, model=None, task_to_instructions=None):
+        #self.task_to_instructions = task_to_instructions
         self.model = model
-        self.tokenizer = self.model.tokenizer
 
     def encode(
         self,
         sentences: list[str],
         *,
-        batch_size: int = 128,
         task_name: str,
         prompt_name: str = None,
         prompt_type: PromptType | None = None,
         **kwargs: Any,
     ) -> np.ndarray:
-        return self.model.encode(sentences, **kwargs, batch_size=batch_size)
+
+        return self.model.encode(sentences, **kwargs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,7 +40,8 @@ if __name__ == "__main__":
         type=str,
         default="../save_model/loss_w_contrastive/checkpoint-1212",
     )
-    parser.add_argument("--output_dir", type=str, default="results")
+    parser.add_argument("--task_name", type=str, default="STS16")
+    parser.add_argument("--output_dir", type=str, default="results/loss_w_contrastive")
 
     args = parser.parse_args()
 
@@ -52,6 +53,6 @@ if __name__ == "__main__":
     )
 
     model = InstructIRModelWrapper(model=model)
-    tasks = mteb.get_tasks(tasks=["Core17InstructionRetrieval", "News21InstructionRetrieval", "Robust04InstructionRetrieval"])
+    tasks = mteb.get_tasks(tasks=["Core17InstructionRetrieval"])
     evaluation = mteb.MTEB(tasks=tasks)
-    results = evaluation.run(model, output_folder=args.output_dir, batch_size=32)
+    results = evaluation.run(model, output_folder=args.output_dir,encode_kwargs={"batch_size": 128})
