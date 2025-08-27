@@ -20,7 +20,7 @@ class InstructIRModelWrapper():
         self,
         sentences: list[str],
         *,
-        batch_size: int = 32,
+        batch_size: int = 128,
         task_name: str,
         prompt_name: str = None,
         prompt_type: PromptType | None = None,

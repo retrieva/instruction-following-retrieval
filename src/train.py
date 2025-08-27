@@ -14,6 +14,7 @@ from peft import LoraConfig, get_peft_model
 from dataset.msmarco import MSMARCO
 from models.instract_ir_model import INSRTUCTIRMODEL
 from loss.contrastive_loss import ContrastiveLoss
+from loss.weighted_contrastive_loss import WeightedContrastiveLoss
 from loss.similarity_margin_loss import SimilarityMarginLoss
 import random
 import numpy as np
@@ -31,7 +32,7 @@ class DefaultCollator:
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         batch = features
-        num_texts = len(batch[0].texts) # query, d_pos, d_neg
+        num_texts = len(batch[0].texts) # query, d_pos, d_neg, 
         texts = [[] for _ in range(num_texts)]
         labels = []
         similairty_scores = []
@@ -67,11 +68,13 @@ class ContrastiveTrainer(Trainer):
         *args,
         contrastive_loss=None,
         margin_loss=None,
+        weighted_contrastive_loss=None,
         loss_lambda: float = 0.1,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.contrastive_loss = contrastive_loss
+        self.weighted_contrastive_loss = weighted_contrastive_loss
         self.margin_loss = margin_loss
         self.loss_lambda = loss_lambda
 
@@ -85,18 +88,24 @@ class ContrastiveTrainer(Trainer):
         
         features, labels, tau_score = inputs
 
-        q_reps = self.model(features[0]) # 0番目はクエリ
+        q_reps = self.model(features[0]) # クエリ
 
-        d_reps_pos = self.model(features[1]) # 1番目は、正例文書
-        d_reps_neg = self.model(features[2]) # 2番目は、指示文を考慮すると関連しない負例文書
+        inst_reps_pos = self.model(features[1]) # 正例指示文
+        inst_reps_neg = self.model(features[2]) # 負例指示文
 
-        x_reps_pos = self.model(features[3]) # 3番目は、クエリと正例指示文
+        d_reps_pos = self.model(features[1])
+        d_reps_neg = self.model(features[2]) 
 
+        x_reps_pos = self.model(features[3])
+        x_reps_neg = self.model(features[4]) 
+
+        tau_pos_score = tau_score[:, 0] # 正例の類似度スコア（τ）
         tau_neg_score = tau_score[:, 1] # 負例の類似度スコア（τ）
 
         if self.contrastive_loss is not None and self.margin_loss is None:
             print("*** Calculate Only Contrastive Loss ... ***")
-            loss = self.contrastive_loss(q_reps, d_reps_pos, d_reps_neg)
+            #loss = self.contrastive_loss(x_reps_pos, d_reps_pos, d_reps_neg)
+            loss = self.weighted_contrastive_loss(q_reps, x_reps_pos, d_reps_pos, d_reps_neg, x_reps_pos, x_reps_neg)
 
         elif self.contrastive_loss is None and self.margin_loss is not None:
             print("*** Calculate Only Ranking Loss ... ***")
@@ -170,17 +179,19 @@ def parse_args():
     parser.add_argument("--similarity_file_path", default="./dataset/similarity/similarity.json")
     # wandb arguments
     parser.add_argument("--wandb_name", default="run-1", help="WandB run name")
-    parser.add_argument("--use_wandb", type=lambda x: bool(strtobool(x)), default=True, help="Use wandb logging")
+    parser.add_argument("--use_wandb", type=lambda x: bool(strtobool(x)), default=False, help="Use wandb logging")
 
     # save_model_path
     parser.add_argument("--output_dir", default="/data/sugiyama/save_model/contrastive-margin-loss",
                        help="Output directory")
     
     # loss
-    parser.add_argument("--use_contrastive_loss", type=lambda x: bool(strtobool(x)), default=True, help="Use contrastive loss")
-    parser.add_argument("--use_margin_loss", type=lambda x: bool(strtobool(x)), default=True, help="Use ranking loss")
+    parser.add_argument("--use_contrastive_loss", type=lambda x: bool(strtobool(x)), default=False, help="Use contrastive loss")
+    parser.add_argument("--use_weighted_contrastive_loss", type=lambda x: bool(strtobool(x)), default=True, help="Use weighted contrastive loss")
+    parser.add_argument("--use_margin_loss", type=lambda x: bool(strtobool(x)), default=False, help="Use ranking loss")
     parser.add_argument("--alpha", type=float, default=0.4, help="Alpha parameter for ranking loss")
     parser.add_argument("--beta", type=float, default=0.1, help="Beta parameter for ranking loss")
+    parser.add_argument("--loss_lambda", type=float, default=0.1, help="Lambda to balance contrastive and ranking loss")
 
     return parser.parse_args()
 
@@ -208,6 +219,7 @@ def main():
 
     contrastive_loss = ContrastiveLoss() if args.use_contrastive_loss else None
     margin_loss = SimilarityMarginLoss(alpha=args.alpha, beta=args.beta) if args.use_margin_loss else None
+    weighted_contrastive_loss = WeightedContrastiveLoss() if args.use_weighted_contrastive_loss else None
 
     data_collator = DefaultCollator(model)
     
@@ -238,7 +250,8 @@ def main():
         tokenizer=tokenizer,
         contrastive_loss=contrastive_loss,
         margin_loss=margin_loss,
-        loss_lambda=loss_lambda,
+        weighted_contrastive_loss=weighted_contrastive_loss,
+        loss_lambda=args.loss_lambda,
     )
 
     trainer.train()

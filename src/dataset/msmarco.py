@@ -41,8 +41,8 @@ class MSMARCO(Dataset):
                 DataSample(
                     id = i,
                     query = dataset["query_positive"],
-                    # instruction_positive = dataset["instruction_positive"],
-                    # instruction_negative = dataset["instruction_negative"],
+                    instruction_positive = dataset["instruction_positive"],
+                    instruction_negative = dataset["instruction_negative"],
                     x_positive = dataset["instruction_positive"] + dataset["query_positive"],
                     x_negative = dataset["instruction_negative"] + dataset["query_positive"],
                     passage_positive = dataset["document_positive"],
@@ -55,7 +55,7 @@ class MSMARCO(Dataset):
     def __getitem__(self, index):
         sample = self.data[index]
         return TrainSample(
-            texts=[sample.query, sample.passage_positive, sample.passage_negative, sample.x_positive, sample.x_negative], 
+            texts=[sample.query, sample.instruction_positive, sample.instruction_negative, sample.x_positive, sample.x_negative, sample.passage_positive, sample.passage_negative], 
             label=1.0,
             similarity_score=[sample.similarity_pos, sample.similarity_neg]
         )

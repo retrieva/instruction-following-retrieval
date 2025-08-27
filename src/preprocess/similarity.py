@@ -3,14 +3,12 @@ from angle_emb import AnglE
 from angle_emb.utils import cosine_similarity
 from tqdm import tqdm
 
-
-
 def main():
     msmarco = MSMARCO()
     examples = [i for i in msmarco]
 
     angle = AnglE.from_pretrained('WhereIsAI/UAE-Large-V1', pooling_strategy='cls').cuda()
-    batch_size = 32 
+    batch_size = 2
     
     scores = []
     id = 0
@@ -19,28 +17,66 @@ def main():
 
         all_texts = []
         for example in batch_examples:
-            passage_positive = example.texts[1]
-            passage_negative = example.texts[2]
+            query = example.texts[0]
+
+            instruction_positive = example.texts[1]
+            instruction_negative = example.texts[2]
+
             x_positive = example.texts[3]
-            
+            x_negative = example.texts[4]
+
+            passage_positive = example.texts[5]
+            passage_negative = example.texts[6]
+
             all_texts.extend([
+                query,
+                instruction_positive,
+                instruction_negative,
                 x_positive,
+                x_negative,
                 passage_positive,
                 passage_negative,
             ])
 
         doc_vecs = angle.encode(all_texts, normalize_embedding=True)
-        
-        for j, example in enumerate(batch_examples):
-            start_idx = j * 3
-            end_idx = start_idx + 3
-            sample_vecs = doc_vecs[start_idx:end_idx]
-            positive_score = cosine_similarity(sample_vecs[0], sample_vecs[1]) # x_positive と passage_positive
-            negative_score = cosine_similarity(sample_vecs[0], sample_vecs[2]) # x_positive と passage_negative
-            scores.append({"id": id, "positive_score": float(positive_score), "negative_score": float(negative_score)})
-            id += 1
 
-    with open("/data/sugiyama/dataset/similarity/similarity.json", "w") as f:
+        for j, example in enumerate(batch_examples):
+            
+            start_idx = j * 7
+            end_idx = start_idx + 7
+            sample_vecs = doc_vecs[start_idx:end_idx]
+
+            q_and_p_pos_score = cosine_similarity(sample_vecs[0], sample_vecs[5]) # クエリと正例文書
+            q_and_p_neg_score = cosine_similarity(sample_vecs[0], sample_vecs[6]) # クエリと負例文書
+
+            inst_pos_and_p_pos_score = cosine_similarity(sample_vecs[1], sample_vecs[5]) # 正例指示文 と 正例文書
+            inst_pos_and_p_neg_score = cosine_similarity(sample_vecs[1], sample_vecs[6]) # 正例指示文 と 負例文書
+
+            inst_neg_and_p_pos_score = cosine_similarity(sample_vecs[2], sample_vecs[5]) # 負例指示文 と 正例文書
+            inst_neg_and_p_neg_score = cosine_similarity(sample_vecs[2], sample_vecs[6]) # 負例指示文 と 負例文書
+
+            x_pos_and_p_pos_score = cosine_similarity(sample_vecs[3], sample_vecs[5]) # クエリ+正例指示文 と 正例文書
+            x_pos_and_p_neg_score = cosine_similarity(sample_vecs[3], sample_vecs[6]) # クエリ+正例指示文 と 負例文書
+
+            x_neg_and_p_pos_score = cosine_similarity(sample_vecs[4], sample_vecs[5]) # クエリ+負例指示文 と 正例文書
+            x_neg_and_p_neg_score = cosine_similarity(sample_vecs[4], sample_vecs[6]) # クエリ+負例指示文 と 負例文書
+
+            scores.append({
+                "id": id,
+                "q_and_p_pos_score": q_and_p_pos_score,
+                "q_and_p_neg_score": q_and_p_neg_score,
+                "inst_pos_and_p_pos_score": inst_pos_and_p_pos_score,
+                "inst_pos_and_p_neg_score": inst_pos_and_p_neg_score,
+                "inst_neg_and_p_pos_score": inst_neg_and_p_pos_score,
+                "inst_neg_and_p_neg_score": inst_neg_and_p_neg_score,
+                "x_pos_and_p_pos_score": x_pos_and_p_pos_score,
+                "x_pos_and_p_neg_score": x_pos_and_p_neg_score,
+                "x_neg_and_p_pos_score": x_neg_and_p_pos_score,
+                "x_neg_and_p_neg_score": x_neg_and_p_neg_score,
+            })
+            id += 1
+        
+    with open("./dataset/similarity/similarity.json", "w") as f:
         import json
         json.dump(scores, f, ensure_ascii=False, indent=2)
 
