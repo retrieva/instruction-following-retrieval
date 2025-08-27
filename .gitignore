@@ -1,6 +1,5 @@
 .venv
 dataset/IFIR
-results
 download
 evaluation2
 log.txt
