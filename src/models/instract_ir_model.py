@@ -20,7 +20,6 @@ from transformers import (
 )
 
 from .bidirectional_llama import LlamaBiModel
-from .bidirectional_qwen2 import Qwen2BiModel
 
 logger = logging.getLogger(__name__)
 
