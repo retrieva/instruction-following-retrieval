@@ -1,0 +1,7 @@
+- wandb.name=04-margin
+- wandb.use_wandb=true
+- loss.contrastive_loss=false
+- loss.weighted_contrastive_loss_v1=false
+- loss.weighted_contrastive_loss_v2=false
+- loss.margin_loss=true
+- training.output_dir=./save_model/04-margin

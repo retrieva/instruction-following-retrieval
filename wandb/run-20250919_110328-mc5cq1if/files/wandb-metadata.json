@@ -1,0 +1,49 @@
+{
+  "os":  "Linux-4.18.0-477.27.1.el8_8.x86_64-x86_64-with-glibc2.28",
+  "python":  "CPython 3.12.11",
+  "startedAt":  "2025-09-19T02:03:28.435336Z",
+  "args":  [
+    "wandb.name=04-margin",
+    "wandb.use_wandb=true",
+    "loss.contrastive_loss=false",
+    "loss.weighted_contrastive_loss_v1=false",
+    "loss.weighted_contrastive_loss_v2=false",
+    "loss.margin_loss=true",
+    "training.output_dir=./save_model/04-margin"
+  ],
+  "program":  "/home/pj25000118/ku50001652/works/2025_internship/./src/train.py",
+  "codePath":  "src/train.py",
+  "codePathLocal":  "src/train.py",
+  "git":  {
+    "remote":  "git@github.com:retrieva/2025_internship.git",
+    "commit":  "cf371f7ae3b22405d3412c101adbcdb189b60524"
+  },
+  "email":  "sugiyama@ai.cs.ehime-u.ac.jp",
+  "root":  "/home/pj25000118/ku50001652/works/2025_internship",
+  "host":  "b0031",
+  "executable":  "/home/pj25000118/ku50001652/works/2025_internship/.venv/bin/python",
+  "cpu_count":  120,
+  "cpu_count_logical":  120,
+  "gpu":  "NVIDIA H100",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "511749718016",
+      "used":  "22854643712"
+    }
+  },
+  "memory":  {
+    "total":  "1081436004352"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA H100",
+      "memoryTotal":  "100485038080",
+      "cudaCores":  16896,
+      "architecture":  "Hopper",
+      "uuid":  "GPU-03fb7359-eec6-36a3-9746-0bc092721223"
+    }
+  ],
+  "cudaVersion":  "12.9",
+  "writerId":  "lw3upfiby09yrr3vkpody4oppcb2u9qy"
+}

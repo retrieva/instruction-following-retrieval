@@ -1,0 +1,35 @@
+model:
+  base_model_name: meta-llama/Llama-3.2-3B-Instruct
+  tau_model_name: princeton-nlp/sup-simcse-bert-large-uncased
+  enable_bidirectional: true
+loss:
+  contrastive_loss: false
+  weighted_contrastive_loss_v1: false
+  weighted_contrastive_loss_v2: true
+  margin_loss: false
+lora:
+  r: 8
+  alpha: 16
+  dropout: 0.05
+wandb:
+  project: experiment
+  name: 05-3B-weight-v2
+  use_wandb: true
+training:
+  output_dir: ./save_model/05-3B-weight-v2
+  num_train_epochs: 3
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 32
+  logging_steps: 1
+  gradient_accumulation_steps: 2
+  warmup_steps: 500
+  weight_decay: 0.01
+  learning_rate: 5.0e-05
+  max_grad_norm: 1.0
+  save_strategy: epoch
+  eval_strategy: epoch
+  fp16: true
+  save_total_limit: 1
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  deepspeed_cfg: ./src/config/ds_config.json
