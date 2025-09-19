@@ -12,6 +12,7 @@ SAVE_MODEL="./save_model/05-3B-con"
 RESULT_PATH="./results/05-3B-con"
 
 deepspeed ./src/multi-gpu-train.py \
+ model.base_model_name="meta-llama/Llama-3.2-3B-Instruct" \
  wandb.name="05-3B-con" \
  wandb.use_wandb=true \
  loss.contrastive_loss=false \

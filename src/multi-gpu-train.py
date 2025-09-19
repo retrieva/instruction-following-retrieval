@@ -225,7 +225,7 @@ def initialize_peft(
     model.print_trainable_parameters()
     return model
 
-@hydra.main(config_name="config", version_base=None, config_path="config")
+@hydra.main(config_name="config_multi", version_base=None, config_path="config")
 def main(cfg: DictConfig):
     fix_seeds()
     train_dataset = MSMARCO(mode="train")
