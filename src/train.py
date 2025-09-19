@@ -68,7 +68,6 @@ class CustomTrainer(Trainer):
         weighted_contrastive_loss_v1=None,
         weighted_contrastive_loss_v2=None,
         tau_classification_module=None,
-        loss_lambda: float = 1.0,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -77,7 +76,6 @@ class CustomTrainer(Trainer):
         self.weighted_contrastive_loss_v2 = weighted_contrastive_loss_v2
         self.margin_loss = margin_loss
         self.tau_classification_module = tau_classification_module
-        self.loss_lambda = loss_lambda
 
     def compute_loss(
         self,
@@ -283,7 +281,6 @@ def main(cfg: DictConfig):
         weighted_contrastive_loss_v1=weighted_contrastive_loss_v1,
         weighted_contrastive_loss_v2=weighted_contrastive_loss_v2,
         tau_classification_module=tau_classification_module,
-        loss_lambda=cfg.loss.loss_lambda,
         callbacks=[
             SimpleEarlyStoppingCallback(
                 metric_name="eval_loss",
