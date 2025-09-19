@@ -36,4 +36,4 @@ training:
   save_total_limit: 1
   metric_for_best_model: "eval_loss"
   greater_is_better: false
-  deepspeed_cfg: ".src/config/ds_config.json"
+  deepspeed_cfg: "config/ds_config.json"
