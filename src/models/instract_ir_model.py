@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import torch
 import torch.multiprocessing as mp
-from peft import PeftModel
+from peft import PeftModel, PeftConfig
 from torch import Tensor, device, nn
 from tqdm.autonotebook import tqdm, trange
 from transformers import (
@@ -79,22 +79,52 @@ class INSTRUCTIRMODEL(nn.Module):
             key: kwargs.pop(key, None) for key in keys if kwargs.get(key) is not None
         }
 
-        tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
+        resolved_base_model_name_or_path = base_model_name_or_path
+        peft_config = None
+        if peft_model_name_or_path is not None:
+            try:
+                peft_config = PeftConfig.from_pretrained(peft_model_name_or_path)
+                base_model_from_adapter = getattr(
+                    peft_config, "base_model_name_or_path", None
+                )
+                if (
+                    base_model_from_adapter
+                    and base_model_from_adapter != base_model_name_or_path
+                ):
+                    logger.warning(
+                        "Overriding base model %s with adapter base model %s",
+                        base_model_name_or_path,
+                        base_model_from_adapter,
+                    )
+                    resolved_base_model_name_or_path = base_model_from_adapter
+            except Exception as exc:
+                logger.warning(
+                    "Could not load PEFT config from %s due to %s. Proceeding with provided base model.",
+                    peft_model_name_or_path,
+                    exc,
+                )
+
+        if resolved_base_model_name_or_path is None:
+            raise ValueError(
+                "Base model path could not be resolved. Provide base_model_name_or_path or ensure the adapter config includes base_model_name_or_path."
+            )
+
+        tokenizer = AutoTokenizer.from_pretrained(resolved_base_model_name_or_path)
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.padding_side = "left"
 
-        config = AutoConfig.from_pretrained(base_model_name_or_path)
+        config = AutoConfig.from_pretrained(resolved_base_model_name_or_path)
 
         config_class_name = config.__class__.__name__
         model_class = cls._get_model_class(
             config_class_name, enable_bidirectional=enable_bidirectional
         )
 
-        model = model_class.from_pretrained(base_model_name_or_path, **kwargs)
-        if os.path.isdir(base_model_name_or_path) and os.path.exists(
-            f"{base_model_name_or_path}/config.json"
+        model = model_class.from_pretrained(resolved_base_model_name_or_path, **kwargs)
+        if os.path.isdir(resolved_base_model_name_or_path) and os.path.exists(
+            f"{resolved_base_model_name_or_path}/config.json"
         ):
-            with open(f"{base_model_name_or_path}/config.json", "r") as fIn:
+            with open(f"{resolved_base_model_name_or_path}/config.json", "r") as fIn:
                 config_dict = json.load(fIn)
             config = PretrainedConfig.from_dict(config_dict)
             model.config._name_or_path = config._name_or_path
@@ -102,7 +132,7 @@ class INSTRUCTIRMODEL(nn.Module):
         if hasattr(model, "peft_config"):
             model = PeftModel.from_pretrained(
                 model,
-                base_model_name_or_path,
+                resolved_base_model_name_or_path,
             )
             model = model.merge_and_unload()
 

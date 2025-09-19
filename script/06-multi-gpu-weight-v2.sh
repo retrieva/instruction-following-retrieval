@@ -23,6 +23,6 @@ deepspeed ./src/multi-gpu-train.py \
 
 
 python ./src/mteb_eval_custom.py \
- --base_model_name_or_path "meta-llama/Llama-3.2-1B-Instruct"\
+ --base_model_name_or_path "meta-llama/Llama-3.2-3B-Instruct"\
  --peft_model_name_or_path $(ls -td ${SAVE_MODEL}/checkpoint-* | head -1) \
  --output_dir ${RESULT_PATH}
