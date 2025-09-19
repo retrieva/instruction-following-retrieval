@@ -267,7 +267,7 @@ def main(cfg: DictConfig):
         save_total_limit=cfg.training.save_total_limit,
         load_best_model_at_end=False,
         metric_for_best_model=cfg.training.metric_for_best_model,
-        greater_is_better=cfg.greater_is_better,
+        greater_is_better=cfg.training.greater_is_better,
     )
 
 
