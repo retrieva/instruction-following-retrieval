@@ -47,16 +47,23 @@ class DefaultCollator:
         labels = torch.tensor(labels)
 
         sentence_features = []
+        tau_features = []
         for idx in range(num_texts):
             tokenized = self.model.tokenize(texts[idx])
             sentence_features.append(tokenized)
-
-        tau_sentence = [example.texts for example in batch]
+            tau_tokenized = self.tau_tokenizer(
+                texts[idx],
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+                max_length=512,
+            )
+            tau_features.append(tau_tokenized)
 
         return {
             "sentence_features": sentence_features,
             "labels": labels,
-            "tau_sentence": tau_sentence
+            "tau_features": tau_features
         }
 
 class CustomTrainer(Trainer):
@@ -87,7 +94,7 @@ class CustomTrainer(Trainer):
         
         features = inputs["sentence_features"]
         _ = inputs["labels"]
-        tau_sentence = inputs["tau_sentence"]
+        tau_features = inputs["tau_features"]
 
         q_reps = self.model(features[0]) # クエリ
         inst_reps_pos = self.model(features[1]) # 指示文
@@ -99,7 +106,7 @@ class CustomTrainer(Trainer):
         if self.margin_loss is not None or self.weighted_contrastive_loss_v1 is not None or self.weighted_contrastive_loss_v2 is not None:
             if self.tau_classification_module is None:
                 raise ValueError("Tau module required but not provided.")
-            tau_reps_output = self.tau_classification_module(tau_sentence)
+            tau_reps_output = self.tau_classification_module(tau_features)
 
         loss_components: List[Tuple[str, torch.Tensor]] = []
 
