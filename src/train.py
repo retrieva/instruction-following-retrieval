@@ -241,7 +241,7 @@ def main(cfg: DictConfig):
     contrastive_loss = ContrastiveLoss() if cfg.loss.contrastive_loss else None
     weighted_contrastive_loss_v1 = WeightedContrastiveLoss_V1() if cfg.loss.weighted_contrastive_loss_v1 else None    
     weighted_contrastive_loss_v2 = WeightedContrastiveLoss_V2() if cfg.loss.weighted_contrastive_loss_v2 else None
-    margin_loss = MarginLoss(margin=cfg.loss.margin) if cfg.loss.margin_loss else None
+    margin_loss = MarginLoss() if cfg.loss.margin_loss else None
 
     tau_classification_module = TauModule(tau_model_name=cfg.model.tau_model_name)
     data_collator = DefaultCollator(model, tau_model_name=cfg.model.tau_model_name)
