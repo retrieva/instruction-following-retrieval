@@ -3,16 +3,16 @@
 #PJM -L gpu=1
 #PJM -L elapse=05:00:00
 #PJM -j
-#PJM -o ./logs/04-margin.txt
+#PJM -o ./logs/05-3B-con.txt
 
 module load cuda cudnn nccl gcc
 . .venv/bin/activate
 
-SAVE_MODEL="./save_model/05-margin"
-RESULT_PATH="./results/05-margin"
+SAVE_MODEL="./save_model/05-3B-con"
+RESULT_PATH="./results/05-3B-con"
 
-deepspeed ./src/train.py \
- wandb.name="04-margin" \
+deepspeed ./src/multi-gpu-train.py \
+ wandb.name="05-3B-con" \
  wandb.use_wandb=true \
  loss.contrastive_loss=false \
  loss.weighted_contrastive_loss_v1=false \
