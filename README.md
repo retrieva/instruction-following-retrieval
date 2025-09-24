@@ -21,7 +21,7 @@
 [図1](#fig-1)のように正例文書と入力テキストの関連度を重みとし、損失に掛け合わせします。
 この時の重みは、教師ありSimCSEで用いた入力テキストと正例文書のコサイン類似度です。
 <p align="center" id="fig-1">
-  <img src="https://github.com/retrieva/2025_internship/blob/main/images/weighted_v1.png" width="60%" alt="重み付き対照学習（手法1）">
+  <img src="https://github.com/retrieva/2025_internship/blob/main/images/weighted_v1.png" width="65%" alt="重み付き対照学習（手法1）">
   <figcaption><p align="center">図1：重み付き対照学習（手法1）の概要図</p></figcaption>
 </p>
 
@@ -31,7 +31,7 @@
 そこで、クエリや指示文にも文書との関連性を考慮するため、[図2](#fig-2)のように「クエリ・指示文・クエリ+指示文」の関連度に応じた重み付き対照学習の手法を実装します。
 重み付き対照学習（手法2）における重みは、手法1と同様に教師ありSimCSEを用いて、各入力テキストと文書のコサイン類似度を計算し、各入力テキストごとに正規化することで算出します。
 <p align="center" id="fig-2">
-  <img src="https://github.com/retrieva/2025_internship/blob/main/images/weighted_v2.png" width="60%" alt="重み付き対照学習（手法2）">
+  <img src="https://github.com/retrieva/2025_internship/blob/main/images/weighted_v2.png" width="65%" alt="重み付き対照学習（手法2）">
   <figcaption><p align="center">図2：重み付き対照学習（手法2）の概要図</p></figcaption>
 </p>
 
