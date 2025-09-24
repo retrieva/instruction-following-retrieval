@@ -1,4 +1,4 @@
-# 指示追従検索
+# 指示追従検索：2025年夏季インターンシップ
 
 ## 目次
 * [はじめに](#はじめに)
@@ -53,7 +53,7 @@ m(x,p^-) = \alpha *\tau(x, p^-)+\beta
 評価用データセット：[FollowIR](https://github.com/orionw/FollowIR)<br>
 
 
-訓練用データセットには、MSMARCOを基にクエリと指示文、正例文書、負例文書から構成された[InF-IR/InF-IR](https://huggingface.co/datasets/InF-IR/InF-IR)を使用しています。
+訓練用データセットには、MSMARCOを基にクエリと指示文、正例文書、負例文書から構成された[InF-IR](https://huggingface.co/datasets/InF-IR/InF-IR)を使用しています。
 また、指示追従検索のベンチマークとしてRobust2004、Core2017、News2021の3つのデータセットから構成された[FollowIR](https://github.com/orionw/FollowIR)を評価データセットとして使用しています。
 評価指標は、nDCG\@5およびp-MRRです。
 
