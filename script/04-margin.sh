@@ -1,12 +1,4 @@
 #!/bin/sh
-#PJM -L rscgrp=b-batch
-#PJM -L gpu=1
-#PJM -L elapse=04:00:00
-#PJM -j
-#PJM -o ./logs/04-margin.txt
-
-module load cuda cudnn nccl gcc
-. .venv/bin/activate
 
 SAVE_MODEL="./save_model/04-margin"
 RESULT_PATH="./results/04-margin"

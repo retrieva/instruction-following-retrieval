@@ -1,12 +1,4 @@
 #!/bin/sh
-#PJM -L rscgrp=b-batch
-#PJM -L gpu=1
-#PJM -L elapse=04:00:00
-#PJM -j
-#PJM -o ./logs/01-con-basic.txt
-
-module load cuda cudnn nccl gcc
-. .venv/bin/activate
 
 SAVE_MODEL="./save_model/01-con"
 RESULT_PATH="./results/01-con"
