@@ -3,5 +3,3 @@ logs/
 outputs
 datasets/
 .venv/
-script/05-multi-gpu-con-basic.sh
-script/06-multi-gpu-weight-v2.sh
