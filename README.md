@@ -19,12 +19,20 @@
 ## 検証した手法
 ### 重み付き対照学習(手法1)
 正例文書に対して、入力テキストの関連度を考慮した重み付き対照学習です。
+重み付き対照学習では、正例文書に対して「クエリ・指示文・クエリ+指示文」の3つを正解ラベルとします。
+図のように正例文書と入力テキストの関連度を重みとし、損失に掛け合わします。
+<p align="center">
+  <img src="https://github.com/retrieva/2025_internship/blob/main/images/weighted_v1.png" width="50%" alt="重み付き対照学習(手法1)">
+</p>
 
 ### 重み付き対照学習(手法2)
 入力テキストに対して、どの程度正例文書が関連しているのかを基に訓練する重み付き対照学習です。
+<p align="center">
+  <img src="https://github.com/retrieva/2025_internship/blob/main/images/weighted_v2.png" width="50%" alt="重み付き対照学習(手法2)">
+</p>
 
 ### マージンロス
-教師ありSimCSEを用いて、クエリ+指示文と負例文書の類似度が高い場合、マージンの値が大きくなる
+教師ありSimCSEを用いて、クエリ+指示文と負例文書の類似度が高い場合、マージンの値が大きくなるマージンロスです。
 
 ## 実験設定
 訓練モデル：[meta-llama/Llama-3.2-1B-Instruct](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct)<br>
@@ -62,7 +70,7 @@ python ./src/mteb_eval_custom.py \
  --output_dir ${RESULT_PATH}
 ```
 
-## ディレクトリ構造
+## ディレクトリ構成
 ディレクトリ構造は以下の通りになっており、script/配下で訓練および評価が実行可能です。
 
 ```
